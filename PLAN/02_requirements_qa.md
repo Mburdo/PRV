@@ -138,41 +138,37 @@
 
 ## Rewrite Log
 
-| REQ | AC | Before | After | Why |
-|-----|-----|--------|-------|-----|
-| REQ-001 | AC-001.1 | "see which session created it" | "see which session created it (applies to non-empty lines with git attribution)" | Clarify scope |
-| REQ-002 | AC-002.2 | "ended_at + buffer" | "ended_at + 30 minutes" | Define buffer |
-| REQ-002 | AC-002.5 | "80%+ accuracy" | "80%+ accuracy measured by manual audit of 50 random commits" | Verifiable |
-| REQ-010 | AC-010.1 | "e.g., instead of X, let's do Y" | Specific patterns: "instead of", "rather than", "decided against", "considered but", "alternative was" | Unambiguous |
-| REQ-011 | AC-011.3 | "Green = traced, Yellow = partial, Gray/Red = unknown" | "Green (>80% lines traced), Yellow (20-80%), Gray (<20%)" | Define thresholds |
+| REQ | Issue | Resolution |
+|-----|-------|------------|
+| REQ-002 | "buffer" undefined, "80% accuracy" not measurable | Moved to ADR-001 (Implementation Details) |
+| REQ-010 | Schema and patterns too detailed for requirement | Moved to ADR-009 (Implementation Details) |
+| REQ-011 | Color thresholds are implementation detail | Moved to ADR-010 (Implementation Details) |
+| REQ-012 | Size constraints and security are implementation | Moved to ADR-009 (Implementation Details) |
 
 ---
 
-## New ACs Added
+## Principle Applied
 
-| REQ | New AC | Description |
-|-----|--------|-------------|
-| REQ-001 | AC-001.5 | If git blame fails, return "Unable to determine origin (git blame failed)" |
-| REQ-001 | AC-001.6 | Response formatted as markdown with session link |
-| REQ-002 | AC-002.6 | Multiple matches ranked by confidence score, highest first |
-| REQ-002 | AC-002.7 | Confidence score is 0.0-1.0 float |
-| REQ-003 | AC-003.5 | Parse 4-space indented code blocks |
-| REQ-003 | AC-003.6 | Extract code from unified diff format |
-| REQ-004 | AC-004.4 | Handle nested git repos (closest .git parent wins) |
-| REQ-004 | AC-004.5 | Case-insensitive path matching on macOS/Windows |
-| REQ-010 | AC-010.5 | When no alternatives found, display "No alternatives discussed" |
-| REQ-010 | AC-010.6 | Schema includes: summary, reasoning, alternatives[], decisions[] |
-| REQ-011 | AC-011.5 | Untracked files show "Not in git" status |
-| REQ-011 | AC-011.6 | "Partial" = commit traced but session uncertain |
+**Requirements = What (outcomes)**
+**ADRs = How (implementation details)**
+
+Implementation specifics like:
+- Time windows (30 min buffer)
+- Confidence score ranges (0.0-1.0)
+- Color thresholds (80/20)
+- Schema structures
+- Accuracy measurement methodology
+
+...all moved to ADRs where they belong. Requirements now focus on user-visible outcomes.
 
 ---
 
-## Missing Requirements Discovered
+## Security Notes
 
-| New REQ | Discovered From | Priority | Status |
-|---------|-----------------|----------|--------|
-| Path sanitization | REQ-004 security check | P0 | Add to AC-004 |
-| LLM prompt safety | REQ-010 security check | P1 | Add to REQ-012 |
+| Concern | Location | Status |
+|---------|----------|--------|
+| Path traversal | REQ-004 | Addressed in AC-004.2 (canonicalization) |
+| LLM prompt injection | REQ-012 | Addressed in ADR-009 (sanitization) |
 
 ---
 
@@ -180,9 +176,10 @@
 
 | Question | Resolution |
 |----------|------------|
-| Buffer time for matching | 30 minutes (AC-002.2) |
-| Heat map thresholds | >80% green, 20-80% yellow, <20% gray (AC-011.3) |
-| Summary schema fields | summary, reasoning, alternatives[], decisions[] (AC-010.6) |
+| Buffer time for matching | 30 minutes → ADR-001 |
+| Heat map thresholds | 80/20 percentages → ADR-010 |
+| Summary schema fields | Defined in ADR-009 |
+| Confidence score range | 0.0-1.0 → ADR-001 |
 
 ---
 
@@ -190,8 +187,7 @@
 
 - **P0 Requirements QA'd:** 6
 - **Issues Found:** 18
-- **Issues Fixed:** 18
-- **New ACs Added:** 12
-- **Security Concerns:** 2 (addressed)
+- **Issues Fixed:** All
+- **Implementation details moved to ADRs:** 4 (ADR-001, ADR-009, ADR-010)
 
-All P0 requirements now pass quality checks.
+All P0 requirements now pass quality checks. Requirements focus on outcomes; ADRs contain implementation specifics.

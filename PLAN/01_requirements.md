@@ -38,13 +38,10 @@ When a user hovers over any line of code in an LSP-compatible editor, PRV return
 PRV can correlate a git commit to the CASS session(s) that likely produced it.
 
 **Acceptance Criteria:**
-- AC-002.1: Given a commit SHA, return candidate session IDs with confidence scores
-- AC-002.2: Matching uses time window (session.started_at ≤ commit_time ≤ session.ended_at + 30 minutes)
-- AC-002.3: Matching uses workspace path (session workspace = git repo root)
-- AC-002.4: Matching uses content fingerprinting (code in session ≈ code in diff)
-- AC-002.5: 80%+ accuracy on commits made during AI sessions (measured by manual audit of 50 random commits)
-- AC-002.6: Multiple matches ranked by confidence score, highest first
-- AC-002.7: Confidence score is 0.0-1.0 float (1.0 = exact match, 0.0 = time-only match)
+- AC-002.1: Given a commit SHA, return candidate session IDs ranked by confidence
+- AC-002.2: Matching considers time proximity, workspace path, and code similarity
+- AC-002.3: High accuracy on commits made during AI sessions
+- AC-002.4: Multiple matches handled gracefully (ranked, not arbitrary)
 
 **Assumptions:**
 - Commits made shortly after sessions end are still matchable (MED confidence)
@@ -53,6 +50,8 @@ PRV can correlate a git commit to the CASS session(s) that likely produced it.
 **Dependencies:**
 - Git log access
 - CASS conversations + messages tables
+
+**Implementation:** See ADR-001 for time windows, confidence scoring, and accuracy targets.
 
 ---
 
@@ -200,12 +199,9 @@ Teams can share PRV context via git without polluting main history.
 PRV extracts and displays alternatives that were considered but rejected during a session.
 
 **Acceptance Criteria:**
-- AC-010.1: Parse session content for rejection patterns: "instead of", "rather than", "decided against", "considered but", "alternative was", "could have", "opted not to"
-- AC-010.2: LLM summarization explicitly extracts "roads not taken" with structured output
-- AC-010.3: Hover context includes rejected alternatives when available
-- AC-010.4: Summary schema has dedicated `alternatives[]` field
-- AC-010.5: When no alternatives detected, display "No alternatives discussed"
-- AC-010.6: Minimum schema: `{ summary: string, reasoning: string, alternatives: [{rejected: string, chosen: string, why: string}], decisions: string[] }`
+- AC-010.1: LLM summarization extracts rejected alternatives from session content
+- AC-010.2: Hover context includes rejected alternatives when available
+- AC-010.3: Graceful handling when no alternatives exist in a session
 
 **Assumptions:**
 - Sessions contain discussion of alternatives (MED confidence - varies by user)
@@ -214,6 +210,8 @@ PRV extracts and displays alternatives that were considered but rejected during 
 **Dependencies:**
 - LLM integration for summarization
 - Enhanced summary schema (ADR-009)
+
+**Implementation:** See ADR-009 for schema structure and detection patterns.
 
 ---
 
@@ -224,11 +222,9 @@ Users can see a visual overview of which code has known provenance vs. unknown o
 
 **Acceptance Criteria:**
 - AC-011.1: `prv heatmap <file>` shows per-line provenance status
-- AC-011.2: LSP provides color annotations or CodeLens for in-editor display
-- AC-011.3: Color thresholds: Green (>80% lines traced), Yellow (20-80%), Gray (<20%)
-- AC-011.4: File-level coverage percentage available (e.g., "67% traced")
-- AC-011.5: Untracked files (not in git) show "Not in git" status
-- AC-011.6: "Partial" = commit is traced but specific session uncertain (multiple candidates)
+- AC-011.2: LSP provides visual indicators for in-editor display
+- AC-011.3: File-level coverage percentage available
+- AC-011.4: Clear distinction between traced, partial, and unknown lines
 
 **Assumptions:**
 - LSP editors support `textDocument/documentColor` or CodeLens (HIGH confidence)
@@ -237,6 +233,8 @@ Users can see a visual overview of which code has known provenance vs. unknown o
 **Dependencies:**
 - Link index from REQ-008
 - LSP server from REQ-001
+
+**Implementation:** See ADR-010 for color thresholds and display format.
 
 ---
 
@@ -247,12 +245,9 @@ PRV generates structured, shareable summaries from session transcripts.
 
 **Acceptance Criteria:**
 - AC-012.1: LLM processes session to extract summary, reasoning, alternatives, decisions
-- AC-012.2: Summary schema is well-defined and versioned (schema_version field)
-- AC-012.3: Summaries stored in `.prv/summaries/<session_id>.json`
-- AC-012.4: `prv summarize <session_id>` generates summary on demand
-- AC-012.5: Summaries < 2KB per session (efficient for sync)
-- AC-012.6: Session content sanitized before LLM processing (no prompt injection)
-- AC-012.7: Support both local (ollama) and API (Claude) backends
+- AC-012.2: Summaries are small enough for efficient sync
+- AC-012.3: `prv summarize <session_id>` generates summary on demand
+- AC-012.4: Support for both local and API-based LLM backends
 
 **Assumptions:**
 - Local LLM (ollama) or API available (MED confidence)
@@ -261,6 +256,8 @@ PRV generates structured, shareable summaries from session transcripts.
 **Dependencies:**
 - CASS session access from REQ-002
 - prv-memory sync from REQ-009
+
+**Implementation:** See ADR-009 for schema structure and size constraints.
 
 ---
 

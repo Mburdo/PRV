@@ -24,6 +24,24 @@ Option C: Hunk fingerprinting
 ### Rationale
 Hash normalized code hunks from commit diffs and match against code blocks extracted from session messages. Handles formatting variations while maintaining good accuracy. Aligns with <500ms performance requirement.
 
+### Implementation Details
+
+**Time Window:**
+- Match window: `session.started_at ≤ commit_time ≤ session.ended_at + 30 minutes`
+- 30-minute buffer accounts for users who commit after session ends (review, test, then commit)
+
+**Confidence Scoring:**
+- Score range: 0.0 to 1.0
+- 1.0 = exact fingerprint match + time window
+- 0.5 = partial fingerprint match + time window
+- 0.2 = time window only (no content match)
+- Multiple matches ranked by score, highest first
+
+**Accuracy Target:**
+- Goal: 80%+ of AI-generated commits correctly linked
+- Validation: Manual audit of 50 random commits from real usage
+- Acceptable false positive rate: <10%
+
 ### Consequences
 - Need code block parser for CASS messages
 - Need normalization strategy (whitespace, comments)
@@ -274,11 +292,38 @@ LLM processes session transcripts locally to extract:
 
 Summaries are small, shareable, and preserve the most valuable context. "Roads Not Taken" is a key differentiator — knowing what was rejected is as valuable as knowing what was chosen.
 
+### Implementation Details
+
+**Summary Schema (v1):**
+```json
+{
+  "schema_version": "1.0",
+  "session_id": "string",
+  "summary": "string (what was done)",
+  "reasoning": "string (why it was done)",
+  "alternatives": [
+    {
+      "rejected": "what was not chosen",
+      "chosen": "what was chosen instead",
+      "why": "reason for the choice"
+    }
+  ],
+  "decisions": ["list of key decisions made"],
+  "files_touched": ["list of file paths"]
+}
+```
+
+**Size Constraint:** Summaries must be < 2KB for efficient sync.
+
+**Rejection Pattern Detection:**
+LLM looks for phrases: "instead of", "rather than", "decided against", "considered but", "alternative was", "could have", "opted not to"
+
+**Fallback:** When no alternatives detected, `alternatives` array is empty (not an error).
+
 ### Consequences
 - LLM integration required (local or API)
-- Summary schema needs design
 - Cost per session (minimal for local models)
-- Summaries stored in prv-memory branch
+- Summaries stored in `.prv/summaries/` and synced via prv-memory branch
 
 ### Reversal Triggers
 - Summary quality too low to be useful
@@ -310,6 +355,31 @@ Option B: Heat map overlay via LSP with Option C as fallback
 Visual overlay in editor gutter shows green (traced) vs. red/gray (unknown) for each line. Immediate orientation for reviewers. LSP `textDocument/documentColor` or custom CodeLens for implementation.
 
 CLI `prv heatmap <file>` generates terminal-colored or HTML output for environments without LSP.
+
+### Implementation Details
+
+**Color Thresholds (per-file):**
+- Green: >80% of lines have traced provenance
+- Yellow: 20-80% of lines traced
+- Gray: <20% of lines traced
+
+**Per-Line States:**
+- Traced (green): Line's commit linked to session with high confidence
+- Partial (yellow): Commit linked but session uncertain (multiple candidates)
+- Unknown (gray): No session link found
+- Not in git: File not tracked by git
+
+**Coverage Calculation:**
+```
+coverage = traced_lines / total_non_empty_lines * 100
+```
+
+**Display Format (CLI):**
+```
+$ prv heatmap src/main.rs
+src/main.rs: 67% traced (134/200 lines)
+  ██████████░░░░░ 67%
+```
 
 ### Consequences
 - LSP must support color annotations or CodeLens
