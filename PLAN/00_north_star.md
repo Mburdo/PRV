@@ -1,91 +1,103 @@
-# North Star Card
-
-The North Star Card anchors everything. Before anyone writes code, this document pins down what success looks like, what's out of scope, and when to stop and ask.
-
-If the North Star is vague, agents will drift.
-
----
-
-## Build Profile (Pick One)
-
-| Profile | Context | Rigor | What "Good" Looks Like |
-|:--------|:--------|:------|:-----------------------|
-| **Personal / Hobby** | Solo, low stakes, learning | Tier 1 | Fast iteration, minimal architecture, smoke tests |
-| **Startup MVP** | Early product, speed matters | Tier 2 | Critical-path tests, clear boundaries, pragmatic security |
-| **Business Tool** | Used by a team, real impact | Tier 2-3 | Strong correctness, integration tests, observability |
-| **Enterprise** | Compliance, audits, high stakes | Tier 3 | Traceability, threat modeling, formal change control |
-
----
-
-## Rigor Tiers
-
-| Tier | Focus | Minimum Bar |
-|:-----|:------|:------------|
-| **1** | Speed | Smoke tests on critical paths |
-| **2** | Balanced | Unit + integration tests, ADRs for major decisions |
-| **3** | Assurance | Full test matrix, threat model, traceability |
-
----
-
-## Template
-
-Copy this into your project as `PLAN/00_north_star.md`:
-
-```markdown
-# North Star Card
+# North Star Card — PRV
 
 ## The Goal
-What does success look like? (One sentence, concrete)
+
+Context tracing for code. Trace any line back to its origin — the session that created it, the reasoning behind it, and everything else created alongside it.
 
 ## Who It's For
-Primary user and the core problem you're solving.
 
-## Context
-What kind of project is this? (Startup MVP, internal tool, hobby project, etc.)
+- **Primary:** Code reviewers who need to understand AI-generated changes
+- **Secondary:** Developers doing archaeology on unfamiliar code, teams needing provenance/audit trails
+
+## The Problem
+
+Agents write code at incredible velocity. The reasoning disappears. No one knows where code came from or why.
 
 ## Build Profile
-Which profile from the table above? Why?
+
+**Startup MVP** — OSS project, ship fast, iterate on feedback
 
 ## Rigor Tier
-1, 2, or 3? Why this level?
 
-## Success Metrics
-How will you know it worked? (Observable, ranked)
+**Tier 2 (Balanced)** — Unit + integration tests, ADRs for decisions
 
-## Non-Goals
-What are you explicitly NOT building?
+## Success Metrics (Ranked)
+
+1. Hover over any line → see origin context in <500ms
+2. 80%+ of AI-generated commits correctly traced to sessions
+3. Zero workflow change — invisible capture via CASS
+4. Editor-agnostic — LSP works in VS Code, Neovim, Zed, etc.
+
+## Non-Goals (v1)
+
+- GitHub/GitLab PR integration
+- Secret detection/redaction
+- Standalone mode (CASS required)
+- Windows support
+- Perfect attribution (heuristic acceptable)
 
 ## Constraints
-Time, budget, tech stack, compliance requirements.
+
+- **Language:** Rust
+- **Dependency:** CASS (session data via SQLite)
+- **Primary interface:** LSP server (hover in any editor)
+- **Secondary interface:** CLI (`prv blame`, `prv query`)
+- **Transport:** Git-native, local-first
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    AI Tools (logging)                       │
+│  Claude Code │ Cursor │ Codex │ Aider │ ChatGPT │ ...      │
+└─────────────────────────┬───────────────────────────────────┘
+                          │ (automatic)
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                         CASS                                │
+│  Discovery → Normalization → SQLite                         │
+└─────────────────────────┬───────────────────────────────────┘
+                          │ (PRV reads SQLite)
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                         PRV                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │   Ingest    │→ │ Fingerprint │→ │       Link          │ │
+│  │ (from CASS) │  │ (hunk hash) │  │ (session → commit)  │ │
+│  └─────────────┘  └─────────────┘  └──────────┬──────────┘ │
+│                                               │            │
+│  ┌────────────────────────────────────────────▼──────────┐ │
+│  │                    Surface                            │ │
+│  │  LSP: hover in any editor                             │ │
+│  │  CLI: prv blame, prv query                            │ │
+│  └───────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ## Stop/Ask Rules
-When should agents pause and ask instead of guessing?
+
+Agents should pause and ask if:
+- Implementation deviates from existing ADRs
+- Security implications arise (transcript exposure, permissions)
+- Matching algorithm changes would affect accuracy significantly
+- New external dependencies are being considered
 
 ## Open Questions
-What still needs to be clarified?
-```
 
----
+- [ ] CASS SQLite schema structure — need to investigate
+- [ ] Fingerprinting edge cases — rebases, squashes, cherry-picks
+- [ ] License choice — MIT vs Apache 2.0
+- [ ] prv-memory sync — still needed? Or simplify for v1?
 
-## Agent Prompt
+## Key Decisions (ADRs)
 
-Use this to have an agent help draft your North Star Card:
-
-```
-Help me create a North Star Card for my project.
-
-Here's what I'm trying to build:
-[describe your project]
-
-Here's the context:
-[who it's for, why you're building it, any constraints]
-
-Create a North Star Card that includes:
-- A concrete one-sentence goal
-- The build profile and rigor tier (with rationale)
-- Success metrics I can actually measure
-- Non-goals to prevent scope creep
-- Stop/ask rules so agents know when to pause
-
-Be direct. If something is unclear, ask me.
-```
+| ADR | Decision |
+|-----|----------|
+| ADR-001 | Hunk fingerprinting for commit↔session matching |
+| ADR-002 | Orphan branch transport (prv-memory) |
+| ADR-003 | Pipes default, PTY opt-in (from original design) |
+| ADR-004 | Queue-then-push security model |
+| ADR-005 | Indexed lookup for O(1) candidate matching |
+| ADR-006 | CASS integration via SQLite (not wrapping) |
+| ADR-007 | Rust as implementation language |
+| ADR-008 | LSP server as primary interface |
