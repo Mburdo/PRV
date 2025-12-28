@@ -109,6 +109,32 @@ See `PLAN/06_phases.md` for full phase details.
 | 2 | "It Explains" | REQ-001, REQ-006, REQ-010, REQ-011, REQ-012 |
 | 3 | "It Shares" (v1.0) | REQ-005, REQ-009 |
 
+---
+
+## Bead → Requirements Mapping
+
+### Phase 0: PRV-u0f (Foundation)
+
+| Bead | Title | Requirements | Acceptance Criteria |
+|------|-------|--------------|---------------------|
+| PRV-u0f.1 | Cargo workspace setup | - | Infrastructure |
+| PRV-u0f.2 | prv-core CodeBlock struct | REQ-003 | AC-003.1, AC-003.2 |
+| PRV-u0f.3 | Code block parser | REQ-003 | AC-003.1-AC-003.6 |
+| PRV-u0f.4 | Code block parser tests | REQ-003 | Validates AC-003.* |
+| PRV-u0f.5 | prv-cass models | REQ-003, REQ-004 | Data layer for AC-003.*, AC-004.* |
+| PRV-u0f.6 | CASS database connection | REQ-003, REQ-004 | AC-003.* (messages), AC-004.1 (workspaces) |
+| PRV-u0f.7 | Workspace-repo mapping | REQ-004 | AC-004.1-AC-004.5 |
+| PRV-u0f.8 | CLI binary with clap | REQ-005 | Infrastructure for AC-005.* |
+| PRV-u0f.9 | prv debug cass command | REQ-003, REQ-004 | Integration validation |
+
+### Requirements → Beads (Inverse)
+
+| REQ | Beads | Coverage |
+|-----|-------|----------|
+| REQ-003 | PRV-u0f.2, .3, .4, .5, .6, .9 | Full (AC-003.1-AC-003.6) |
+| REQ-004 | PRV-u0f.5, .6, .7, .9 | Full (AC-004.1-AC-004.5) |
+| REQ-005 | PRV-u0f.8 | Partial (scaffold only) |
+
 ### v1.1
 - REQ-013: Evolution Graph
 - Improved fingerprinting accuracy

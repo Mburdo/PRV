@@ -1,13 +1,13 @@
 ---
-name: disagreement-resolution
+name: resolve
 description: Resolve disagreements between agents or approaches using test-based adjudication. Use when agents disagree, when multiple valid approaches exist, when the user asks "which approach", or when making architectural decisions with tradeoffs.
 ---
 
-# Disagreement Resolution — Orchestrator
+# Resolve — Test-Based Adjudication
 
 Test-based adjudication for multi-agent or multi-approach disagreements.
 
-> **Pattern:** This skill uses the orchestrator-subagent pattern. Each phase runs in a fresh context to prevent anchoring bias. See `docs/guides/ORCHESTRATOR_SUBAGENT_PATTERN.md`.
+> **Design rationale:** This skill uses the orchestrator-subagent pattern because test-based adjudication involves substantial cognitive work: position gathering, discriminating test design, test execution, and evidence-based adjudication. Each phase benefits from fresh context to prevent anchoring bias. See `docs/guides/ORCHESTRATOR_SUBAGENT_PATTERN.md`.
 
 ## When This Applies
 
@@ -72,7 +72,7 @@ A discriminating test is one where:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                DISAGREEMENT-RESOLUTION ORCHESTRATOR              │
+│                      RESOLVE ORCHESTRATOR                        │
 │  - Creates session: sessions/resolve-{timestamp}/                │
 │  - Manages TodoWrite state                                       │
 │  - Spawns subagents with isolated context (prevents anchoring)   │

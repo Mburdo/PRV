@@ -3,11 +3,11 @@ name: prime
 description: New agent startup checklist for Agent Mail and Beads. Use when starting a new agent session, when the user says "prime" or "startup", or when beginning work on a multi-agent project.
 ---
 
-# Prime — Orchestrator
+# Prime — Session Startup
 
-Complete startup checklist for new agent sessions.
+Complete startup checklist for new agent sessions. Direct execution (no subagents).
 
-> **Pattern:** This skill uses the orchestrator-subagent pattern. Each phase runs in a fresh context for optimal multi-agent coordination. See `docs/guides/ORCHESTRATOR_SUBAGENT_PATTERN.md`.
+> **Design rationale:** This skill executes directly rather than spawning subagents because each step is a simple command sequence (~200 tokens each), not substantial analytical work. Per Lita research: "Simple agents achieve 97% of complex system performance with 15x less code." Subagent overhead would exceed actual work.
 
 ## When This Applies
 
@@ -31,7 +31,6 @@ Complete startup checklist for new agent sessions.
 | `set_contact_policy(agent_name, policy)` | Set to "open" for coordination |
 | `fetch_inbox(agent_name, limit)` | Check for messages |
 | `send_message(to, subject, body_md)` | Send greeting/announcements |
-| `file_reservation_paths(paths, exclusive)` | Reserve files before editing |
 
 ### Bash Commands
 | Command | Purpose |
@@ -40,397 +39,233 @@ Complete startup checklist for new agent sessions.
 | `cass search "query" --robot --days 7` | Search session history |
 | `bd ready --json` | List available tasks |
 | `bv --robot-triage` | Get task recommendations |
-| `bd update <id> --status in_progress --assignee NAME` | Claim task |
 | `git status` | Check repo state |
 | `git log --oneline -5` | Recent commits |
-
-### Message Subjects
-| Pattern | When |
-|---------|------|
-| `Agent Online` | After registration |
-| `[CLAIMED] bd-XXX - Title` | When claiming task |
-
----
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      PRIME ORCHESTRATOR                          │
-│  - Creates session: sessions/prime-{timestamp}/                  │
-│  - Manages TodoWrite state                                       │
-│  - Spawns subagents with minimal context                         │
-│  - Passes agent_name between phases                              │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-         ┌────────────────────┼────────────────────┐
-         │                    │                    │
-         ▼                    ▼                    ▼
-┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
-│    Identity     │  │     Orient      │  │   Coordinate    │
-│  agents/        │  │  agents/        │  │  agents/        │
-│  identity.md    │  │  orient.md      │  │  coordinate.md  │
-└────────┬────────┘  └────────┬────────┘  └────────┬────────┘
-         │                    │                    │
-    01_identity.md       02_orientation.md   03_coordination.md
-         │                    │                    │
-         │      agent_name    │    active_agents   │    blocked_files
-         └────────────────────┼────────────────────┘
-                              │
-                              ▼
-                    ┌─────────────────┐
-                    │    Discover     │ → Recommends task
-                    │  agents/        │
-                    │  discover.md    │
-                    └────────┬────────┘
-                             │
-                        04_discovery.md
-```
-
-## Subagents
-
-| Phase | Agent | Input | Output |
-|-------|-------|-------|--------|
-| 1 | `agents/identity.md` | project_path | agent_name, registered |
-| 2 | `agents/orient.md` | project_path, agent_name | context, active_agents |
-| 3 | `agents/coordinate.md` | agent_name, active_agents | inbox, blocked_files |
-| 4 | `agents/discover.md` | agent_name, blocked_files | recommended_task |
 
 ---
 
 ## Execution Flow
 
-### 1. Setup (Orchestrator)
+Execute these steps directly. No subagents needed.
 
-```markdown
-1. Create session directory:
-   mkdir -p sessions/prime-{timestamp}
+### Step 1: Register Identity
 
-2. Initialize TodoWrite with phases:
-   - [ ] Phase 1: Identity
-   - [ ] Phase 2: Orient
-   - [ ] Phase 3: Coordinate
-   - [ ] Phase 4: Discover
-
-3. Gather inputs:
-   - project_path: Absolute path to project
-   - program: "claude-code"
-   - model: "opus-4.5"
-```
-
-### 2. Phase 1: Identity
-
-**Spawn:** `agents/identity.md`
-
-**Input:**
-```json
-{
-  "project_path": "/abs/path/to/project",
-  "session_dir": "sessions/prime-{timestamp}",
-  "program": "claude-code",
-  "model": "opus-4.5"
-}
-```
-
-**Output:**
-```json
-{
-  "agent_name": "BlueLake",
-  "registered": true
-}
-```
-
-### 3. Phase 2: Orient
-
-**Spawn:** `agents/orient.md`
-
-**Input:**
-```json
-{
-  "project_path": "/abs/path/to/project",
-  "session_dir": "sessions/prime-{timestamp}",
-  "agent_name": "BlueLake"
-}
-```
-
-**Output:**
-```json
-{
-  "active_agents": ["GreenCastle", "RedStone"],
-  "recent_sessions_summary": "Auth module, rate limiting",
-  "git_branch": "feature/user-auth"
-}
-```
-
-### 4. Phase 3: Coordinate
-
-**Spawn:** `agents/coordinate.md`
-
-**Input:**
-```json
-{
-  "project_path": "/abs/path/to/project",
-  "session_dir": "sessions/prime-{timestamp}",
-  "agent_name": "BlueLake",
-  "active_agents": ["GreenCastle", "RedStone"]
-}
-```
-
-**Output:**
-```json
-{
-  "urgent_messages": 0,
-  "blocked_files": ["src/api/**", "migrations/**"],
-  "greeting_sent": true
-}
-```
-
-### 5. Phase 4: Discover
-
-**Spawn:** `agents/discover.md`
-
-**Input:**
-```json
-{
-  "project_path": "/abs/path/to/project",
-  "session_dir": "sessions/prime-{timestamp}",
-  "agent_name": "BlueLake",
-  "blocked_files": ["src/api/**", "migrations/**"],
-  "requires_response": []
-}
-```
-
-**Output:**
-```json
-{
-  "recommended_task": {
-    "id": "bd-125",
-    "title": "JWT validation",
-    "files": ["src/auth/**"]
-  },
-  "can_claim": true
-}
-```
-
-### 6. Finalize (Orchestrator)
-
-1. Update TodoWrite (all phases complete)
-2. Present startup summary to user
-3. If task recommended and user approves, proceed to claim
-
----
-
-## Configuration
-
-Set these for your project:
-
-```
-PROJECT_PATH="/abs/path/to/your/project"  # Agent Mail project_key
-PROJECT_NAME="Your Project Name"
-```
-
-If working across repos, use ONE canonical "coordination root" for Agent Mail + Beads.
-
----
-
-## Step 1: Announce Identity
-
-```bash
-echo -ne "\033]0;[AgentName] | PROJECT_NAME\007"
-```
-
-Update after registration with your actual name.
-
----
-
-## Step 2: Register with Agent Mail
-
-**PREFERRED: Use macro_start_session for simplicity:**
+**PREFERRED — Use macro for simplicity:**
 
 ```python
 result = macro_start_session(
-  human_key="PROJECT_PATH",
-  program="claude-code",
-  model="opus-4.5",
-  file_reservation_paths=["src/**"],  # Optional: reserve files upfront
-  inbox_limit=10
+    human_key="PROJECT_PATH",  # Absolute path to project
+    program="claude-code",
+    model="opus-4.5",
+    inbox_limit=10
 )
-agent_name = result["agent"]["name"]
-# Includes: project, agent_name, file_reservations, inbox
+agent_name = result["agent"]["name"]  # e.g., "BlueLake"
 ```
 
-**ALTERNATIVE: Manual steps:**
+**ALTERNATIVE — Manual steps:**
 
 ```python
+# 1. Ensure project exists
 ensure_project(human_key="PROJECT_PATH")
 
-register_agent(
-  project_key="PROJECT_PATH",
-  program="claude-code",
-  model="opus-4.5",
-  task_description="Agent - [your focus]"
+# 2. Register agent (name is auto-assigned)
+result = register_agent(
+    project_key="PROJECT_PATH",
+    program="claude-code",
+    model="opus-4.5",
+    task_description="Agent initializing..."
 )
-# SAVE YOUR AGENT NAME from response (e.g., "BlueLake")
+agent_name = result["name"]  # SAVE THIS
 
+# 3. Set contact policy for coordination
 set_contact_policy(
-  project_key="PROJECT_PATH",
-  agent_name="YOUR_AGENT_NAME",
-  policy="open"
+    project_key="PROJECT_PATH",
+    agent_name=agent_name,
+    policy="open"
 )
 ```
 
-Update terminal:
+**Update terminal title:**
 ```bash
-echo -ne "\033]0;[YOUR_AGENT_NAME] | PROJECT_NAME\007"
+echo -ne "\033]0;[{agent_name}] | PROJECT_NAME\007"
 ```
 
 ---
 
-## Step 3: Orient
+### Step 2: Orient
 
-Read AGENTS.md:
+**Read project documentation:**
 ```
-Read("AGENTS.md")
+Read("AGENTS.md")     # Agent workflow instructions
+Read("CLAUDE.md")     # Project overview
 ```
 
-Check recent session history:
+**Check recent session history:**
 ```bash
 cass search "PROJECT_NAME" --workspace "PROJECT_PATH" --robot --days 7 --limit 5
 ```
 
-Get learned patterns for context:
+**Get learned patterns:**
 ```bash
 cm context "starting work on PROJECT_NAME" --json
 ```
 
-This returns relevant rules, anti-patterns, and historical context to inform your work.
-
----
-
-## Step 4: Coordinate
-
-Check inbox:
-```python
-fetch_inbox(
-  project_key="PROJECT_PATH",
-  agent_name="YOUR_AGENT_NAME",
-  include_bodies=true,
-  limit=20
-)
-```
-
-Discover other agents:
-```python
-ReadMcpResourceTool(
-  server="mcp-agent-mail",
-  uri="resource://agents/PROJECT_PATH"
-)
-```
-
-Send greeting:
-```python
-send_message(
-  project_key="PROJECT_PATH",
-  sender_name="YOUR_AGENT_NAME",
-  to=["OtherAgent1", "OtherAgent2"],
-  subject="Agent Online",
-  body_md="I'm online. Focusing on: [task]. What needs attention?",
-  importance="normal"
-)
-```
-
----
-
-## Step 5: Discover Work
-
+**Check git state:**
 ```bash
 git status
 git log --oneline -5
-bd ready --json
-bv --robot-triage
+git branch
 ```
 
-For multi-agent, use track grouping:
-```bash
-bv --robot-triage --robot-triage-by-track
-```
-
----
-
-## Step 6: Claim Task
-
-```bash
-bd update <task-id> --status in_progress --assignee YOUR_AGENT_NAME
-```
-
-Reserve files:
+**Discover active agents:**
 ```python
-file_reservation_paths(
-  project_key="PROJECT_PATH",
-  agent_name="YOUR_AGENT_NAME",
-  paths=["app/services/**"],
-  ttl_seconds=3600,
-  exclusive=true,
-  reason="<task-id>: brief description"
+ReadMcpResourceTool(
+    server="mcp-agent-mail",
+    uri="resource://agents/PROJECT_PATH"
 )
 ```
 
 ---
 
-## Step 7: Output Summary
+### Step 3: Coordinate
+
+**Check inbox:**
+```python
+messages = fetch_inbox(
+    project_key="PROJECT_PATH",
+    agent_name=agent_name,
+    include_bodies=True,
+    limit=20
+)
+```
+
+**Categorize messages:**
+- **Urgent** — Requires response before starting work
+- **Informational** — [CLAIMED], [CLOSED] announcements
+- **Acknowledgement required** — ack_required=True
+
+**Note file reservations** from other agents (these are off-limits).
+
+**Send greeting (if other agents active):**
+```python
+send_message(
+    project_key="PROJECT_PATH",
+    sender_name=agent_name,
+    to=[active_agents],
+    subject="Agent Online",
+    body_md="I'm online. Focusing on: [task]. What needs attention?",
+    importance="normal"
+)
+```
+
+---
+
+### Step 4: Discover Work
+
+**Get recommendations:**
+```bash
+bv --robot-triage      # Priority analysis
+bv --robot-next        # Single best task
+```
+
+**Get ready tasks:**
+```bash
+bd ready --json
+```
+
+**Check already claimed:**
+```bash
+bd list --status in_progress --json
+```
+
+**Filter by file availability:**
+- Check each ready task's required files
+- Exclude tasks where files are reserved by others
+- Recommend highest-priority available task
+
+---
+
+### Step 5: Output Summary
+
+Present to user:
 
 ```markdown
 ## Agent Initialized
 
-**Name:** [YOUR_AGENT_NAME]
-**Focus:** [task description]
-**Repo:** PROJECT_NAME
+**Name:** {agent_name}
+**Project:** PROJECT_NAME
+**Branch:** {git_branch}
 
 ### Context
-- Recent sessions: [summary from CASS]
-- Inbox: [X messages, Y requiring response]
-- Active agents: [list]
+- Recent sessions: {summary from CASS}
+- Active agents: {list or "none"}
+- Inbox: {count} messages ({urgent} urgent)
+- Blocked files: {list or "none"}
 
-### Task Claimed
-- **ID:** [task-id]
-- **Title:** [task title]
-- **Files reserved:** [list]
+### Learned Patterns
+{relevant patterns from cm}
 
-### Ready to Work
-[State your plan for the task]
+### Recommended Task
+**ID:** {task_id}
+**Title:** {task_title}
+**Priority:** {priority}
+**Files:** {file_scope}
+
+Ready to claim? Use `/advance` to claim and begin work.
 ```
 
 ---
 
-## After Priming
+## Mandatory Gates
 
-When done or switching tasks:
-1. Run tests / builds
-2. **Run `ubs --staged` (MANDATORY GATE)**
-   - Zero high/critical findings required
-   - Medium findings require documented justification
-   - This is NOT optional—~40% of LLM code has vulnerabilities
-3. Commit (include `.beads/issues.jsonl`) and push
-4. Release file reservations
-5. Close sub-beads first, then parent
-6. Run `/next-bead` for next task
+After priming, these gates apply to all work:
+
+| Gate | Requirement | Evidence |
+|------|-------------|----------|
+| **TDD-first** | Write tests before implementation | 45.97% higher success rate |
+| **ubs --staged** | Security scan before every commit | ~40% of LLM code has vulnerabilities |
+| **Max 3 iterations** | Stop after 3 repair attempts | Security degrades with more |
+| **Escalate on failure** | Create spike, notify operator | Don't waste time debugging |
 
 ---
 
-## Mandatory Rules (2025 Research)
+## Quick Reference
 
-| Rule | Why | Evidence |
-|------|-----|----------|
-| **TDD-first** | 45.97% higher success | `research/054-tdd-ai-code-gen.md` |
-| **`ubs --staged` mandatory** | ~40% of LLM code has vulnerabilities | `research/052-llm-security-vulnerabilities.md` |
-| **Max 3 iterations** | Security degrades with more | `research/053-feedback-loop-security.md` |
-| **Escalate after 3 failures** | Don't waste time debugging | Stop, spike, notify operator |
+```bash
+# Register (preferred)
+macro_start_session(human_key=PROJECT_PATH, program="claude-code", model="opus-4.5")
 
-See `bead-workflow/` for full details on these gates.
+# Orient
+cass search "PROJECT" --robot --days 7
+cm context "task" --json
+git status
+
+# Coordinate
+fetch_inbox(agent_name=YOUR_NAME, limit=20)
+send_message(to=[...], subject="Agent Online", ...)
+
+# Discover
+bv --robot-triage
+bd ready --json
+```
+
+---
+
+## Anti-Patterns
+
+| Don't | Why | Do Instead |
+|-------|-----|------------|
+| Skip registration | Can't coordinate | Always register first |
+| Ignore inbox | Miss urgent messages | Check before claiming |
+| Ignore reservations | File conflicts | Respect all reservations |
+| Skip cm context | Miss learned patterns | Always check patterns |
+| Claim without checking | Duplicate work | Verify availability first |
 
 ---
 
 ## See Also
 
-- `bead-workflow/` — Claiming and closing beads
-- `project-memory/` — Past session context
+- `/advance` — Claim and work on tasks
+- `/recall` — Get context from past sessions
+- `beads-cli/` — bd command reference
+- `beads-viewer/` — bv command reference

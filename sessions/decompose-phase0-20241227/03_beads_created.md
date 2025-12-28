@@ -1,5 +1,12 @@
 # Phase 0 Beads Created
 
+## Decomposition Strategy
+**Feature-based** with dependency awareness:
+- Track A: Core domain (CodeBlock struct → Parser → Tests)
+- Track B: Infrastructure (CASS models → DB connection → Workspace mapping)
+- Track C: Interface (CLI scaffold)
+- Integration point: PRV-u0f.9 validates all tracks work together
+
 ## Epic
 | ID | Title | Status |
 |----|-------|--------|

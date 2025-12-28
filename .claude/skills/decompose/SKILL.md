@@ -1,13 +1,13 @@
 ---
-name: decompose-task
+name: decompose
 description: Decompose a phase plan into atomic beads and sub-beads. Use when breaking down a phase into tasks, when the user mentions "decompose" or "break down", when creating beads from a plan, or when structuring work for parallel execution.
 ---
 
-# Decompose Task — Orchestrator
+# Decompose — Task Breakdown
 
 Break a phase into atomic beads and sub-beads for agent execution.
 
-> **Pattern:** This skill uses the orchestrator-subagent pattern. Each phase runs in a fresh context to prevent "context bombing" on large phases. See `docs/guides/ORCHESTRATOR_SUBAGENT_PATTERN.md`.
+> **Design rationale:** This skill uses the orchestrator-subagent pattern because decomposition involves substantial cognitive work: understanding the phase, creating a lossless manifest, generating beads, setting dependencies, and validation. The "Create Beads" phase is especially critical—when an agent reads a 1000-line phase doc directly, it summarizes. With subagents, the manifest captures everything first, preventing information loss.
 
 ## When This Applies
 
@@ -15,7 +15,7 @@ Break a phase into atomic beads and sub-beads for agent execution.
 |--------|--------|
 | User says "decompose" or "break down" | Run full protocol |
 | Have a phase plan ready | Decompose into beads |
-| User says "/decompose-task" | Run full protocol |
+| User says "/decompose" | Run full protocol |
 | Need to structure work for agents | Create bead hierarchy |
 
 ---
@@ -59,7 +59,7 @@ Break a phase into atomic beads and sub-beads for agent execution.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                  DECOMPOSE-TASK ORCHESTRATOR                     │
+│                    DECOMPOSE ORCHESTRATOR                        │
 │  - Creates session: sessions/decompose-{timestamp}/              │
 │  - Manages TodoWrite state                                       │
 │  - Spawns subagents with minimal context                         │

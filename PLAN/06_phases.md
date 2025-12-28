@@ -4,6 +4,13 @@
 
 PRV v1.0 is broken into 4 phases, each producing a shippable artifact. Phases build on each other but each delivers standalone value.
 
+## Development Approach
+
+**TDD (Test-Driven Development):** Tests are written before implementation. Each bead includes test specifications that must pass before the bead is considered complete. This ensures:
+- Clear acceptance criteria before coding
+- Regression protection as codebase grows
+- Documentation through executable examples
+
 ```
 Phase 0 (Foundation) → Phase 1 (Core) → Phase 2 (Differentiators) → Phase 3 (Polish)
 ```
