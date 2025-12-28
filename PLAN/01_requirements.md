@@ -20,15 +20,18 @@ When a user hovers over any line of code in an LSP-compatible editor, PRV return
 - AC-001.4: If no match found, return graceful "Unknown origin" message
 - AC-001.5: If git blame fails, return "Unable to determine origin (git blame failed)"
 - AC-001.6: Response formatted as markdown with clickable session link
+- AC-001.7: For **uncommitted** lines, show **provisional** origin within seconds of save (if matched) with explicit status and lower confidence
 
 **Assumptions:**
 - CASS database is indexed and available (HIGH confidence)
 - Git blame is available for the file (HIGH confidence)
 - LSP hover protocol supports markdown responses (HIGH confidence)
+- Near-real-time session data is available from CASS (MED confidence)
 
 **Dependencies:**
 - CASS SQLite database
 - Git repository with history
+- File change detection (watcher or polling)
 
 ---
 
@@ -39,7 +42,7 @@ PRV can correlate a git commit to the CASS session(s) that likely produced it.
 
 **Acceptance Criteria:**
 - AC-002.1: Given a commit SHA, return candidate session IDs ranked by confidence
-- AC-002.2: Matching considers time proximity, workspace path, and code similarity
+- AC-002.2: Matching considers time proximity (as a **decay prior**), workspace path, and code similarity
 - AC-002.3: High accuracy on commits made during AI sessions
 - AC-002.4: Multiple matches handled gracefully (ranked, not arbitrary)
 
@@ -225,6 +228,7 @@ Users can see a visual overview of which code has known provenance vs. unknown o
 - AC-011.2: LSP provides visual indicators for in-editor display
 - AC-011.3: File-level coverage percentage available
 - AC-011.4: Clear distinction between traced, partial, and unknown lines
+- AC-011.5: Distinguish **confirmed** (committed) vs **provisional** (working tree) provenance
 
 **Assumptions:**
 - LSP editors support `textDocument/documentColor` or CodeLens (HIGH confidence)

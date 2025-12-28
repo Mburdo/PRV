@@ -83,8 +83,9 @@ Phase 0 (Foundation) → Phase 1 (Core) → Phase 2 (Differentiators) → Phase 
 **Deliverables:**
 - LLM summarization integration (local + API)
 - Enhanced summary generation with alternatives extraction
-- Heat map CLI: `prv heatmap <file>`
-- LSP server with hover support
+- Heat map CLI: `prv heatmap <file>` (confirmed + provisional)
+- LSP server with hover support (confirmed + provisional)
+- Minimal working-tree provenance overlay (provisional status, updated on save)
 
 **Requirements Addressed:**
 | REQ | Scope |
@@ -100,12 +101,13 @@ Phase 0 (Foundation) → Phase 1 (Core) → Phase 2 (Differentiators) → Phase 
 - [ ] Summary includes `alternatives[]` when detected
 - [ ] `prv heatmap src/main.rs` shows colored output
 - [ ] LSP hover returns context in < 500ms (p95)
+- [ ] Uncommitted lines show **provisional** provenance (status + low confidence) updated on save
 - [ ] Works in VS Code and Neovim
 
 **Depends On:** Phase 1
 
 **Spikes Required:**
-- SPIKE-003: LSP performance baseline
+- SPIKE-003: LSP + working-tree overlay performance baseline
 - SPIKE-004: LLM summary extraction
 - SPIKE-005: Heat map LSP implementation
 

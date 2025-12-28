@@ -42,11 +42,12 @@ Agents write code at incredible velocity. The reasoning disappears. No one knows
 ## Success Metrics (Ranked)
 
 1. Hover over any line → see origin context with alternatives in <500ms
-2. 80%+ of AI-generated commits correctly traced to sessions
-3. Zero workflow change — invisible capture via CASS
-4. Editor-agnostic — LSP works in VS Code, Neovim, Zed, etc.
-5. Heat map shows provenance coverage for any file
-6. Shared summaries include rejected alternatives (not just chosen approach)
+2. **Working tree visibility:** provisional provenance appears within seconds of save for AI-generated code
+3. 80%+ of AI-generated commits correctly traced to sessions (confirmed provenance)
+4. Zero workflow change — invisible capture via CASS
+5. Editor-agnostic — LSP works in VS Code, Neovim, Zed, etc.
+6. Heat map shows provenance coverage for any file (confirmed + provisional)
+7. Shared summaries include rejected alternatives (not just chosen approach)
 
 ## Non-Goals (v1)
 
@@ -56,6 +57,7 @@ Agents write code at incredible velocity. The reasoning disappears. No one knows
 - Windows support
 - Perfect attribution (heuristic acceptable)
 - Full transcript sharing (summaries only)
+- Per-keystroke capture (provisional state is updated on save, not every edit)
 - Provenance-aware AI assistance (v2)
 
 ## Constraints
@@ -120,7 +122,7 @@ See `PLAN/01_requirements.md` for consolidated list. Summary:
 **Resolved:**
 - [x] CASS SQLite schema structure — SPIKE-001 complete
 - [x] Context sharing model — Enhanced summaries (ADR-009)
-- [x] Buffer time for matching — 30 minutes (AC-002.2)
+- [x] Time prior for matching — ECDF/decay (no hard cutoff)
 - [x] Heat map thresholds — >80%/20-80%/<20% (AC-011.3)
 - [x] Summary schema — Defined in AC-010.6
 
@@ -148,6 +150,7 @@ See `PLAN/01_requirements.md` for consolidated list. Summary:
 
 ### v1.0 (MVP)
 - Core linking (session → commit)
+- Provisional working-tree overlay for AI-generated changes
 - LSP hover with context
 - CLI commands (blame, query)
 - Enhanced summaries with alternatives

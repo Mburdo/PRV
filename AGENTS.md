@@ -3,23 +3,12 @@
 ## Project Overview
 
 - **Name**: PRV (Git-native memory layer for AI-assisted development)
-- **Language**: Go
+- **Language**: Rust
 - **Key Paths**:
   - `cmd/prv/` - CLI entry point
   - `internal/` - Core packages (gitutil, capture, diff, index, recorder, linker, syncer, installer)
   - `plan_legacy/` - Existing design documentation (reference only)
   - `PLAN/` - Active planning documents
-
----
-
-## Workflow Baseline (Evidence-Backed)
-
-If this project is using the Knowledge & Vibes workflow, align to:
-- `docs/workflow/IDEATION_TO_PRODUCTION.md` (complete pipeline reference)
-- `docs/workflow/PROTOCOLS.md` (protocol cards)
-- `/calibrate` between phases (hard stop; evidence-grounded plan control)
-
-If those files do not exist in this repo, ask the user where the canonical workflow docs live.
 
 ---
 

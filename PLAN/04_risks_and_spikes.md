@@ -12,6 +12,7 @@
 | LLM summary quality | "Roads not taken" extraction may be inconsistent or miss alternatives | M | H | SPIKE-004 + prompt iteration |
 | LLM availability/cost | Local LLM may be too slow; API costs may accumulate | M | M | Support both, default local |
 | Heat map LSP support | Gutter annotations may not work across all editors | L | M | SPIKE-005 + CLI fallback |
+| Live working-tree overlay | File watchers + provisional matching may hurt perf or confuse UX | M | M | SPIKE-003 (expanded) + explicit provisional status |
 | Summary schema evolution | Schema changes break existing summaries | L | M | Version field + migration |
 | Alternative extraction reliability | Not all sessions discuss alternatives explicitly | H | M | Accept partial extraction, enrich UI
 
@@ -53,9 +54,9 @@
 
 ---
 
-### SPIKE-002: Fingerprinting Strategy (Future)
+### SPIKE-002: Fingerprinting Strategy
 
-**Status:** Pending (after SPIKE-001)
+**Status:** Completed (2025-12-28)
 
 **Goal:** Validate hunk fingerprinting approach with real data.
 
@@ -67,19 +68,34 @@
 
 **Timebox:** 2 hours
 
-**Output:** Prototype fingerprinting code + accuracy assessment
+**Output:**
+- Scoring rubric (time as decay prior; precision-first)
+- Corpus v1 + methodology
+- Baseline time-only eval (sanity check)
+- Step-ladder strategy validated; prototype deferred to Phase 1
 
 ---
 
-### SPIKE-003: LSP Performance Baseline (Future)
+### SPIKE-003: LSP Performance + Working-Tree Overlay Baseline (Future)
 
 **Status:** Pending
 
-**Goal:** Validate that the git blame → CASS lookup → response chain can hit <500ms.
+**Goal:** Validate that the git blame → CASS lookup → response chain can hit <500ms, and quantify the overhead/latency of provisional working-tree overlays.
 
-**Timebox:** 1 hour
+**Questions to answer:**
+1. Can hover responses hit <500ms (p95) with git blame + CASS lookup?
+2. What is the performance impact of file watching vs polling?
+3. What is the latency from CASS message → provisional overlay?
+4. How do we keep provisional signals visually distinct from confirmed ones?
+5. Does provisional overlay affect heatmap or hover responsiveness?
 
-**Output:** Benchmark numbers, bottleneck identification
+**Timebox:** 2 hours
+
+**Output:**
+- Benchmark numbers and bottleneck identification
+- Recommended watcher/polling approach
+- Expected latency budget
+- UX guidance for provisional vs confirmed display
 
 ---
 
@@ -139,11 +155,15 @@
 
 ---
 
+
+---
+
 ## Spike Outcomes Log
 
 | Spike | Date | Outcome | Decision Made |
 |-------|------|---------|---------------|
 | SPIKE-001 | 2024-12-27 | Completed - schema documented | Proceed with CASS integration |
+| SPIKE-002 | 2025-12-28 | Completed - rubric + corpus + validation plan | Proceed to Phase 1 core linking |
 
 ---
 
