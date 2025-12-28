@@ -1,90 +1,106 @@
-# Traceability Matrix Template
-
-A traceability matrix maps requirements to implementation. It prevents drift and makes gaps obvious.
-
-Without explicit traceability, requirements get lost as context grows. A single coverage map catches gaps before they become bugs.
-
----
-
-## Conventions
-
-- `NS-#` for North Star items
-- `REQ-#` for requirements
-- `AC-#` for acceptance criteria
-- Beads use bead IDs (e.g., `bd-123.2`)
-- Tests use file paths or test identifiers
-- Status: `planned` > `in_progress` > `code_done` > `tests_done` > `accepted`
-
----
-
-## Template
-
-Copy this into your project as `PLAN/05_traceability.md`:
-
-```markdown
-# Traceability Matrix
+# Traceability Matrix — PRV
 
 ## Scope
-- Project:
-- Date:
-- Rigor Tier:
+- **Project:** PRV (Context Tracing)
+- **Date:** 2024-12-27
+- **Rigor Tier:** 2
 
 ---
 
 ## Coverage Matrix
 
-| ID | Requirement | Phase | Beads | Tests | Acceptance | Status | Evidence |
-|----|-------------|-------|-------|-------|------------|--------|----------|
-| NS-1 | [North Star bullet] | Phase 0 | plan.0.1 | [tests] | AC-1 | planned | [link] |
-| REQ-3 | [Requirement text] | Phase 2 | bd-123.2 | tests/auth_sso.py | AC-7 | tests_done | run: #127 |
+### Core Linking (P0)
+
+| ID | Requirement | ADRs | Spikes | Tests | Status |
+|----|-------------|------|--------|-------|--------|
+| REQ-001 | LSP Hover Context | ADR-008 | SPIKE-003 | - | planned |
+| REQ-002 | Commit-Session Linking | ADR-001, ADR-005, ADR-006 | SPIKE-001, SPIKE-002 | - | planned |
+| REQ-003 | Code Block Extraction | ADR-006 | SPIKE-001 | - | planned |
+| REQ-004 | Workspace-Repo Mapping | ADR-006 | SPIKE-001 | - | planned |
+
+### Differentiating Features (P0)
+
+| ID | Requirement | ADRs | Spikes | Tests | Status |
+|----|-------------|------|--------|-------|--------|
+| REQ-010 | Roads Not Taken Extraction | ADR-009 | SPIKE-004 | - | planned |
+| REQ-011 | Provenance Heat Map | ADR-010 | SPIKE-005 | - | planned |
+
+### CLI & Interface (P1)
+
+| ID | Requirement | ADRs | Spikes | Tests | Status |
+|----|-------------|------|--------|-------|--------|
+| REQ-005 | CLI Query Interface | ADR-008 | - | - | planned |
+| REQ-006 | Session Context Display | ADR-009 | - | - | planned |
+| REQ-007 | Git Hook Linking | ADR-004 | - | - | planned |
+| REQ-012 | Enhanced Summary Generation | ADR-009 | SPIKE-004 | - | planned |
+
+### Advanced Features (P2)
+
+| ID | Requirement | ADRs | Spikes | Tests | Status |
+|----|-------------|------|--------|-------|--------|
+| REQ-008 | Index for Fast Lookup | ADR-005 | - | - | planned |
+| REQ-009 | Shareable Context (prv-memory) | ADR-002, ADR-004 | - | - | planned |
+| REQ-013 | Evolution Graph | ADR-009 | - | - | planned |
+
+---
+
+## ADR → Requirement Mapping
+
+| ADR | Title | Requirements |
+|-----|-------|--------------|
+| ADR-001 | Hunk Fingerprinting | REQ-002 |
+| ADR-002 | Orphan Branch Transport | REQ-009 |
+| ADR-003 | (Deprecated) | - |
+| ADR-004 | Queue-then-Push Security | REQ-007, REQ-009 |
+| ADR-005 | Indexed Lookup | REQ-002, REQ-008 |
+| ADR-006 | CASS Integration | REQ-002, REQ-003, REQ-004 |
+| ADR-007 | Rust Language | (all) |
+| ADR-008 | LSP Primary Interface | REQ-001, REQ-005 |
+| ADR-009 | Enhanced Summaries | REQ-006, REQ-010, REQ-012, REQ-013 |
+| ADR-010 | Heat Map Visualization | REQ-011 |
+
+---
+
+## Spike → Requirement Mapping
+
+| Spike | Goal | Requirements Validated |
+|-------|------|------------------------|
+| SPIKE-001 | CASS Schema | REQ-002, REQ-003, REQ-004 |
+| SPIKE-002 | Fingerprinting | REQ-002 |
+| SPIKE-003 | LSP Performance | REQ-001 |
+| SPIKE-004 | LLM Summary Extraction | REQ-010, REQ-012 |
+| SPIKE-005 | Heat Map LSP | REQ-011 |
 
 ---
 
 ## Gap Check
 
-| Pattern | Symptom | Fix |
-|---------|---------|-----|
-| Orphan requirement | REQ with no beads | Create bead or mark REQ as deferred |
-| Untested bead | Bead with no tests | Add tests before closing |
-| Unverified AC | AC with no evidence | Run verification, add evidence |
-| Scope creep | Bead not linked to any REQ | Either link to REQ or question if needed |
-| Missing P0 coverage | P0 REQ without `accepted` status | Block release until verified |
-```
+| Pattern | Symptom | Status |
+|---------|---------|--------|
+| SPIKE-001 | CASS schema validation | **Complete** |
+| SPIKE-002 | Fingerprinting validation | Pending |
+| SPIKE-003 | LSP performance validation | Pending |
+| SPIKE-004 | LLM extraction validation | Pending |
+| SPIKE-005 | Heat map LSP validation | Pending |
 
 ---
 
-## When to Update
+## Milestone Mapping
 
-| Trigger | Action |
-|---------|--------|
-| After `/decompose-task` | Add bead IDs to REQ rows |
-| After creating tests | Add test paths to bead rows |
-| After closing a bead | Update Status + Evidence |
-| During `/calibrate` | Scan for gaps |
-| After requirements change | Add new rows, mark old as deprecated |
+### v1.0 (MVP)
+- REQ-001: LSP Hover
+- REQ-002: Commit-Session Linking
+- REQ-003: Code Block Extraction
+- REQ-004: Workspace Mapping
+- REQ-005: CLI Query
+- REQ-010: Roads Not Taken
+- REQ-011: Heat Map
+- REQ-012: Enhanced Summaries
 
----
+### v1.1
+- REQ-013: Evolution Graph
+- Improved fingerprinting accuracy
 
-## Agent Prompt
-
-Use this to have an agent check traceability:
-
-```
-Review the traceability between my requirements and implementation:
-
-Requirements: [paste or reference PLAN/01_requirements.md]
-Beads: [paste bd list output or reference .beads/]
-Tests: [describe test coverage or list test files]
-
-For each requirement:
-1. Is there a bead that implements it?
-2. Is there a test that verifies it?
-3. Is there evidence the test passed?
-
-Flag any gaps:
-- Requirements without implementation
-- Implementation without tests
-- Tests without passing evidence
-
-Output a gap report with specific fixes for each issue.
-```
+### v2.0
+- Provenance-aware AI assistance
+- GitHub/GitLab integration

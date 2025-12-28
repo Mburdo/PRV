@@ -2,7 +2,9 @@
 
 ## The Goal
 
-Context tracing for code. Trace any line back to its origin — the session that created it, the reasoning behind it, and everything else created alongside it.
+Context tracing for code. Trace any line back to its origin — the session that created it, the reasoning behind it, **the alternatives that were rejected**, and everything else created alongside it.
+
+**Tagline:** Git tells you what changed. PRV tells you why, what else was considered, and how understanding evolved.
 
 ## Who It's For
 
@@ -11,7 +13,23 @@ Context tracing for code. Trace any line back to its origin — the session that
 
 ## The Problem
 
-Agents write code at incredible velocity. The reasoning disappears. No one knows where code came from or why.
+Agents write code at incredible velocity. The reasoning disappears. No one knows where code came from or why. Worse: no one knows what alternatives were considered and rejected.
+
+## What Makes PRV Different
+
+| Others Do | PRV Does |
+|-----------|----------|
+| Track who wrote code | Track **why** and **what was rejected** |
+| Show commit history | Show **decision history** |
+| Metadata only | **Structured summaries** with alternatives |
+| Per-file view | **Heat map** showing provenance coverage |
+
+### Differentiating Features
+
+1. **Roads Not Taken** — Extract rejected alternatives from sessions, not just what was chosen
+2. **Provenance Heat Map** — Visual overlay showing which code has context vs. blind spots
+3. **Enhanced Summaries** — AI-generated summaries shared via prv-memory (not raw transcripts)
+4. **Evolution Graph** — Chain sessions over time to show how code understanding evolved (v1.1)
 
 ## Build Profile
 
@@ -23,26 +41,31 @@ Agents write code at incredible velocity. The reasoning disappears. No one knows
 
 ## Success Metrics (Ranked)
 
-1. Hover over any line → see origin context in <500ms
+1. Hover over any line → see origin context with alternatives in <500ms
 2. 80%+ of AI-generated commits correctly traced to sessions
 3. Zero workflow change — invisible capture via CASS
 4. Editor-agnostic — LSP works in VS Code, Neovim, Zed, etc.
+5. Heat map shows provenance coverage for any file
+6. Shared summaries include rejected alternatives (not just chosen approach)
 
 ## Non-Goals (v1)
 
-- GitHub/GitLab PR integration
+- GitHub/GitLab PR integration (future)
 - Secret detection/redaction
 - Standalone mode (CASS required)
 - Windows support
 - Perfect attribution (heuristic acceptable)
+- Full transcript sharing (summaries only)
+- Provenance-aware AI assistance (v2)
 
 ## Constraints
 
 - **Language:** Rust
 - **Dependency:** CASS (session data via SQLite)
 - **Primary interface:** LSP server (hover in any editor)
-- **Secondary interface:** CLI (`prv blame`, `prv query`)
+- **Secondary interface:** CLI (`prv blame`, `prv query`, `prv heatmap`)
 - **Transport:** Git-native, local-first
+- **Sharing:** Enhanced summaries via prv-memory (not raw transcripts)
 
 ## Architecture
 
@@ -61,15 +84,22 @@ Agents write code at incredible velocity. The reasoning disappears. No one knows
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                         PRV                                 │
+│                                                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
 │  │   Ingest    │→ │ Fingerprint │→ │       Link          │ │
 │  │ (from CASS) │  │ (hunk hash) │  │ (session → commit)  │ │
 │  └─────────────┘  └─────────────┘  └──────────┬──────────┘ │
 │                                               │            │
-│  ┌────────────────────────────────────────────▼──────────┐ │
+│  ┌─────────────┐  ┌─────────────┐  ┌──────────▼──────────┐ │
+│  │  Summarize  │← │   Extract   │← │    PRV Index        │ │
+│  │  (LLM call) │  │ Alternatives│  │  (links + hashes)   │ │
+│  └──────┬──────┘  └─────────────┘  └─────────────────────┘ │
+│         │                                                   │
+│  ┌──────▼────────────────────────────────────────────────┐ │
 │  │                    Surface                            │ │
-│  │  LSP: hover in any editor                             │ │
-│  │  CLI: prv blame, prv query                            │ │
+│  │  LSP: hover with context + alternatives               │ │
+│  │  CLI: prv blame, prv query, prv heatmap               │ │
+│  │  Sync: prv-memory with enhanced summaries             │ │
 │  └───────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -81,13 +111,15 @@ Agents should pause and ask if:
 - Security implications arise (transcript exposure, permissions)
 - Matching algorithm changes would affect accuracy significantly
 - New external dependencies are being considered
+- LLM provider/model choices for summarization
 
 ## Open Questions
 
-- [ ] CASS SQLite schema structure — need to investigate
+- [x] CASS SQLite schema structure — SPIKE-001 complete
 - [ ] Fingerprinting edge cases — rebases, squashes, cherry-picks
 - [ ] License choice — MIT vs Apache 2.0
-- [ ] prv-memory sync — still needed? Or simplify for v1?
+- [x] Context sharing model — Enhanced summaries (ADR-009)
+- [ ] LLM for summarization — which model? local vs API?
 
 ## Key Decisions (ADRs)
 
@@ -95,9 +127,31 @@ Agents should pause and ask if:
 |-----|----------|
 | ADR-001 | Hunk fingerprinting for commit↔session matching |
 | ADR-002 | Orphan branch transport (prv-memory) |
-| ADR-003 | Pipes default, PTY opt-in (from original design) |
+| ADR-003 | Pipes default, PTY opt-in (deprecated - using CASS) |
 | ADR-004 | Queue-then-push security model |
 | ADR-005 | Indexed lookup for O(1) candidate matching |
 | ADR-006 | CASS integration via SQLite (not wrapping) |
 | ADR-007 | Rust as implementation language |
 | ADR-008 | LSP server as primary interface |
+| ADR-009 | Enhanced summaries for cross-machine sharing (not raw transcripts) |
+| ADR-010 | Provenance heat map visualization |
+
+## Roadmap
+
+### v1.0 (MVP)
+- Core linking (session → commit)
+- LSP hover with context
+- CLI commands (blame, query)
+- Enhanced summaries with alternatives
+- Provenance heat map
+- prv-memory sync
+
+### v1.1
+- Evolution graph (session chains over time)
+- Cross-session intelligence
+- Improved fingerprinting accuracy
+
+### v2.0
+- Provenance-aware AI (AI uses context when helping)
+- GitHub/GitLab integration
+- Time travel understanding

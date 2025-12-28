@@ -9,6 +9,11 @@
 | LSP performance | Hover must return in <500ms; git blame + CASS lookup chain | L | H | Benchmark early |
 | Rebase/squash handling | Git history rewrites orphan existing links | M | M | Accept or re-link strategy |
 | CASS not installed | PRV requires CASS; cold start UX | L | M | Clear error + install guide |
+| LLM summary quality | "Roads not taken" extraction may be inconsistent or miss alternatives | M | H | SPIKE-004 + prompt iteration |
+| LLM availability/cost | Local LLM may be too slow; API costs may accumulate | M | M | Support both, default local |
+| Heat map LSP support | Gutter annotations may not work across all editors | L | M | SPIKE-005 + CLI fallback |
+| Summary schema evolution | Schema changes break existing summaries | L | M | Version field + migration |
+| Alternative extraction reliability | Not all sessions discuss alternatives explicitly | H | M | Accept partial extraction, enrich UI
 
 ---
 
@@ -75,6 +80,62 @@
 **Timebox:** 1 hour
 
 **Output:** Benchmark numbers, bottleneck identification
+
+---
+
+### SPIKE-004: LLM Summary Extraction with Alternatives
+
+**Status:** Pending (after SPIKE-002)
+
+**Goal:** Validate LLM-based extraction of enhanced summaries including "roads not taken."
+
+**Questions to answer:**
+1. Can we reliably extract rejected alternatives from session transcripts?
+2. What prompt structure yields best summary quality?
+3. Local model (ollama/llama) vs API (Claude) - quality vs. cost tradeoffs?
+4. What summary schema captures the right information?
+5. Can we stay under 2KB per summary?
+
+**Timebox:** 3 hours
+
+**Steps:**
+1. Sample 10 real sessions from CASS with varying complexity
+2. Test prompt variations for alternative extraction
+3. Compare local (llama3) vs API (Claude Haiku) quality
+4. Draft summary JSON schema
+5. Measure output sizes
+
+**Output:**
+- Recommended model/approach
+- Prompt template
+- Summary schema v1
+- Quality assessment (manual review)
+
+**Decision it unlocks:**
+- ADR-009 validation (does this actually work?)
+- REQ-010 feasibility
+- Cost model for API usage
+
+---
+
+### SPIKE-005: Heat Map LSP Implementation (Future)
+
+**Status:** Pending
+
+**Goal:** Validate LSP mechanisms for per-line provenance visualization.
+
+**Questions to answer:**
+1. Does `textDocument/documentColor` work for gutter annotations?
+2. Can CodeLens provide per-line provenance indicators?
+3. Which approach works across VS Code, Neovim, Zed?
+4. Performance impact of per-line annotations?
+
+**Timebox:** 2 hours
+
+**Output:**
+- Recommended LSP mechanism
+- Editor compatibility matrix
+- Prototype implementation
 
 ---
 
