@@ -1,2 +1,16 @@
 # bv (beads viewer) local config and caches
 .bv/
+
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
