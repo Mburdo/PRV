@@ -14,10 +14,12 @@
 When a user hovers over any line of code in an LSP-compatible editor, PRV returns the origin context for that line within 500ms.
 
 **Acceptance Criteria:**
-- AC-001.1: Hover over a line → see which session created it (if known)
-- AC-001.2: Response includes: agent name, timestamp, session title
+- AC-001.1: Hover over a non-empty line with git attribution → see which session created it (if known)
+- AC-001.2: Response includes: agent name, timestamp, session title, rejected alternatives (if available)
 - AC-001.3: Response time < 500ms for 95th percentile
-- AC-001.4: If no match found, return graceful "unknown origin" message
+- AC-001.4: If no match found, return graceful "Unknown origin" message
+- AC-001.5: If git blame fails, return "Unable to determine origin (git blame failed)"
+- AC-001.6: Response formatted as markdown with clickable session link
 
 **Assumptions:**
 - CASS database is indexed and available (HIGH confidence)
@@ -37,10 +39,12 @@ PRV can correlate a git commit to the CASS session(s) that likely produced it.
 
 **Acceptance Criteria:**
 - AC-002.1: Given a commit SHA, return candidate session IDs with confidence scores
-- AC-002.2: Matching uses time window (session.started_at ≤ commit_time ≤ session.ended_at + buffer)
+- AC-002.2: Matching uses time window (session.started_at ≤ commit_time ≤ session.ended_at + 30 minutes)
 - AC-002.3: Matching uses workspace path (session workspace = git repo root)
 - AC-002.4: Matching uses content fingerprinting (code in session ≈ code in diff)
-- AC-002.5: 80%+ accuracy on commits made during AI sessions (measured by manual audit)
+- AC-002.5: 80%+ accuracy on commits made during AI sessions (measured by manual audit of 50 random commits)
+- AC-002.6: Multiple matches ranked by confidence score, highest first
+- AC-002.7: Confidence score is 0.0-1.0 float (1.0 = exact match, 0.0 = time-only match)
 
 **Assumptions:**
 - Commits made shortly after sessions end are still matchable (MED confidence)
@@ -62,6 +66,8 @@ PRV extracts code blocks from CASS message content for fingerprinting.
 - AC-003.2: Handle language tags (```python, ```rust, etc.)
 - AC-003.3: Handle nested or malformed blocks gracefully (don't crash)
 - AC-003.4: Extract file paths when mentioned near code blocks
+- AC-003.5: Parse 4-space indented code blocks (markdown style)
+- AC-003.6: Extract code from unified diff format (lines starting with `+`)
 
 **Assumptions:**
 - Most code is in triple-backtick blocks (HIGH confidence based on spike)
@@ -79,8 +85,10 @@ PRV maps CASS workspaces to git repository roots.
 
 **Acceptance Criteria:**
 - AC-004.1: Given a git repo path, find matching CASS workspace
-- AC-004.2: Handle path variations (trailing slashes, symlinks)
+- AC-004.2: Handle path variations (trailing slashes, symlinks, canonicalization)
 - AC-004.3: Cache workspace mappings for performance
+- AC-004.4: Handle nested git repos (closest .git parent wins)
+- AC-004.5: Case-insensitive path matching on macOS/Windows
 
 **Assumptions:**
 - workspace.path in CASS matches actual filesystem paths (HIGH confidence - verified in spike)
@@ -192,10 +200,12 @@ Teams can share PRV context via git without polluting main history.
 PRV extracts and displays alternatives that were considered but rejected during a session.
 
 **Acceptance Criteria:**
-- AC-010.1: Parse session content for rejected approaches (e.g., "instead of X, let's do Y")
-- AC-010.2: LLM summarization explicitly extracts "roads not taken"
+- AC-010.1: Parse session content for rejection patterns: "instead of", "rather than", "decided against", "considered but", "alternative was", "could have", "opted not to"
+- AC-010.2: LLM summarization explicitly extracts "roads not taken" with structured output
 - AC-010.3: Hover context includes rejected alternatives when available
-- AC-010.4: Summary schema has dedicated `alternatives` field
+- AC-010.4: Summary schema has dedicated `alternatives[]` field
+- AC-010.5: When no alternatives detected, display "No alternatives discussed"
+- AC-010.6: Minimum schema: `{ summary: string, reasoning: string, alternatives: [{rejected: string, chosen: string, why: string}], decisions: string[] }`
 
 **Assumptions:**
 - Sessions contain discussion of alternatives (MED confidence - varies by user)
@@ -215,8 +225,10 @@ Users can see a visual overview of which code has known provenance vs. unknown o
 **Acceptance Criteria:**
 - AC-011.1: `prv heatmap <file>` shows per-line provenance status
 - AC-011.2: LSP provides color annotations or CodeLens for in-editor display
-- AC-011.3: Green = traced, Yellow = partial, Gray/Red = unknown
-- AC-011.4: File-level coverage percentage available
+- AC-011.3: Color thresholds: Green (>80% lines traced), Yellow (20-80%), Gray (<20%)
+- AC-011.4: File-level coverage percentage available (e.g., "67% traced")
+- AC-011.5: Untracked files (not in git) show "Not in git" status
+- AC-011.6: "Partial" = commit is traced but specific session uncertain (multiple candidates)
 
 **Assumptions:**
 - LSP editors support `textDocument/documentColor` or CodeLens (HIGH confidence)
@@ -235,10 +247,12 @@ PRV generates structured, shareable summaries from session transcripts.
 
 **Acceptance Criteria:**
 - AC-012.1: LLM processes session to extract summary, reasoning, alternatives, decisions
-- AC-012.2: Summary schema is well-defined and versioned
+- AC-012.2: Summary schema is well-defined and versioned (schema_version field)
 - AC-012.3: Summaries stored in `.prv/summaries/<session_id>.json`
 - AC-012.4: `prv summarize <session_id>` generates summary on demand
 - AC-012.5: Summaries < 2KB per session (efficient for sync)
+- AC-012.6: Session content sanitized before LLM processing (no prompt injection)
+- AC-012.7: Support both local (ollama) and API (Claude) backends
 
 **Assumptions:**
 - Local LLM (ollama) or API available (MED confidence)
@@ -273,9 +287,14 @@ PRV can chain sessions over time to show how understanding of code evolved.
 
 ## Open Questions
 
+**Resolved:**
 - [x] Should PRV store its own copy of session data, or always read from CASS? → Read from CASS (ADR-006)
-- [ ] How to handle sessions that span multiple commits?
-- [ ] What's the right "buffer" time after session end for matching?
 - [x] Should hover show transcript excerpt, or just link to full? → Show enhanced summary (ADR-009)
-- [ ] Which LLM for summarization? Local (ollama) vs API?
-- [ ] Summary schema design
+- [x] What's the right "buffer" time after session end for matching? → 30 minutes (AC-002.2)
+- [x] Heat map color thresholds? → >80% green, 20-80% yellow, <20% gray (AC-011.3)
+- [x] Summary schema design? → Defined in AC-010.6
+
+**Open:**
+- [ ] How to handle sessions that span multiple commits? (link to all? primary only?)
+- [ ] Which LLM for summarization? Local (ollama) vs API? → SPIKE-004 will answer
+- [ ] Fingerprinting algorithm details (normalization, hash function) → SPIKE-002 will answer

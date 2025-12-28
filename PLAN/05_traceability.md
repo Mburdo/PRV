@@ -7,6 +7,19 @@
 
 ---
 
+## North Star Success Metrics → Requirements
+
+| NS Success Metric | Primary REQ | Supporting REQs | Phase |
+|-------------------|-------------|-----------------|-------|
+| 1. Hover → context with alternatives in <500ms | REQ-001 | REQ-010 | 2 |
+| 2. 80%+ commits traced to sessions | REQ-002 | REQ-003, REQ-004 | 1 |
+| 3. Zero workflow change (invisible via CASS) | REQ-004 | REQ-007 | 0-1 |
+| 4. Editor-agnostic LSP | REQ-001 | - | 2 |
+| 5. Heat map shows provenance coverage | REQ-011 | REQ-008 | 2 |
+| 6. Summaries include rejected alternatives | REQ-010 | REQ-012 | 2 |
+
+---
+
 ## Coverage Matrix
 
 ### Core Linking (P0)
@@ -85,17 +98,16 @@
 
 ---
 
-## Milestone Mapping
+## Phase → Requirements Mapping
 
-### v1.0 (MVP)
-- REQ-001: LSP Hover
-- REQ-002: Commit-Session Linking
-- REQ-003: Code Block Extraction
-- REQ-004: Workspace Mapping
-- REQ-005: CLI Query
-- REQ-010: Roads Not Taken
-- REQ-011: Heat Map
-- REQ-012: Enhanced Summaries
+See `PLAN/06_phases.md` for full phase details.
+
+| Phase | Milestone | Requirements |
+|-------|-----------|--------------|
+| 0 | "It Reads" | REQ-003, REQ-004 |
+| 1 | "It Links" | REQ-002, REQ-007, REQ-008 |
+| 2 | "It Explains" | REQ-001, REQ-006, REQ-010, REQ-011, REQ-012 |
+| 3 | "It Shares" (v1.0) | REQ-005, REQ-009 |
 
 ### v1.1
 - REQ-013: Evolution Graph

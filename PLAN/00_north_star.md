@@ -115,11 +115,19 @@ Agents should pause and ask if:
 
 ## Open Questions
 
+See `PLAN/01_requirements.md` for consolidated list. Summary:
+
+**Resolved:**
 - [x] CASS SQLite schema structure — SPIKE-001 complete
-- [ ] Fingerprinting edge cases — rebases, squashes, cherry-picks
-- [ ] License choice — MIT vs Apache 2.0
 - [x] Context sharing model — Enhanced summaries (ADR-009)
-- [ ] LLM for summarization — which model? local vs API?
+- [x] Buffer time for matching — 30 minutes (AC-002.2)
+- [x] Heat map thresholds — >80%/20-80%/<20% (AC-011.3)
+- [x] Summary schema — Defined in AC-010.6
+
+**Open (will be resolved by spikes):**
+- [ ] Fingerprinting algorithm — SPIKE-002
+- [ ] LLM for summarization — SPIKE-004
+- [ ] License choice — MIT vs Apache 2.0 (decision needed)
 
 ## Key Decisions (ADRs)
 
