@@ -63,13 +63,12 @@ fn query_commit(commit_ref: &str, json_output: bool) -> Result<()> {
     use prv_core::LinkStorage;
 
     // Open the git repository
-    let repo = git2::Repository::open_from_env().map_err(|e| {
-        anyhow::anyhow!("Not in a git repository: {}", e)
-    })?;
+    let repo = git2::Repository::open_from_env()
+        .map_err(|e| anyhow::anyhow!("Not in a git repository: {}", e))?;
 
-    let workdir = repo.workdir().ok_or_else(|| {
-        anyhow::anyhow!("Repository has no working directory (bare repo?)")
-    })?;
+    let workdir = repo
+        .workdir()
+        .ok_or_else(|| anyhow::anyhow!("Repository has no working directory (bare repo?)"))?;
 
     // Resolve the commit reference to a full SHA
     let commit_sha = resolve_commit(&repo, commit_ref)?;
@@ -86,7 +85,10 @@ fn query_commit(commit_ref: &str, json_output: bool) -> Result<()> {
                 println!("Session:    {}", link.session_id);
                 println!("Confidence: {:.0}%", link.confidence * 100.0);
                 println!("Match step: {}", link.match_step);
-                println!("Linked at:  {}", link.created_at.format("%Y-%m-%d %H:%M:%S UTC"));
+                println!(
+                    "Linked at:  {}",
+                    link.created_at.format("%Y-%m-%d %H:%M:%S UTC")
+                );
             }
         }
         None => {
@@ -101,13 +103,13 @@ fn query_commit(commit_ref: &str, json_output: bool) -> Result<()> {
 
 fn resolve_commit(repo: &git2::Repository, commit_ref: &str) -> Result<String> {
     // Try to resolve as a reference (HEAD, branch name, etc.)
-    let obj = repo.revparse_single(commit_ref).map_err(|e| {
-        anyhow::anyhow!("Cannot resolve '{}': {}", commit_ref, e)
-    })?;
+    let obj = repo
+        .revparse_single(commit_ref)
+        .map_err(|e| anyhow::anyhow!("Cannot resolve '{}': {}", commit_ref, e))?;
 
-    let commit = obj.peel_to_commit().map_err(|e| {
-        anyhow::anyhow!("'{}' is not a commit: {}", commit_ref, e)
-    })?;
+    let commit = obj
+        .peel_to_commit()
+        .map_err(|e| anyhow::anyhow!("'{}' is not a commit: {}", commit_ref, e))?;
 
     Ok(commit.id().to_string())
 }
@@ -165,6 +167,42 @@ mod tests {
     }
 
     #[test]
+    fn test_query_parses_with_defaults() {
+        let cli = Cli::parse_from(["prv", "query"]);
+        match cli.command {
+            Some(Commands::Query { commit, json }) => {
+                assert_eq!(commit, "HEAD");
+                assert!(!json);
+            }
+            _ => panic!("Expected Query command"),
+        }
+    }
+
+    #[test]
+    fn test_query_parses_with_commit() {
+        let cli = Cli::parse_from(["prv", "query", "abc123"]);
+        match cli.command {
+            Some(Commands::Query { commit, json }) => {
+                assert_eq!(commit, "abc123");
+                assert!(!json);
+            }
+            _ => panic!("Expected Query command"),
+        }
+    }
+
+    #[test]
+    fn test_query_parses_with_json_flag() {
+        let cli = Cli::parse_from(["prv", "query", "HEAD", "--json"]);
+        match cli.command {
+            Some(Commands::Query { commit, json }) => {
+                assert_eq!(commit, "HEAD");
+                assert!(json);
+            }
+            _ => panic!("Expected Query command"),
+        }
+    }
+
+    #[test]
     #[ignore] // Integration test - requires CASS
     fn test_debug_cass_integration() {
         use std::process::Command;
@@ -183,6 +221,26 @@ mod tests {
             "stdout: {}\nstderr: {}",
             stdout,
             stderr
+        );
+    }
+
+    #[test]
+    #[ignore] // Integration test - requires git repo
+    fn test_query_no_link_shows_helpful_message() {
+        use std::process::Command;
+
+        let output = Command::new("cargo")
+            .args(["run", "--", "query", "HEAD"])
+            .output()
+            .expect("Failed to run prv");
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+
+        // Should show helpful message about running prv link
+        assert!(
+            stdout.contains("No link found") || stdout.contains("prv link"),
+            "stdout: {}",
+            stdout
         );
     }
 }
