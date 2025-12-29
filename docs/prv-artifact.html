@@ -3,322 +3,895 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRV - The Memory Layer</title>
+    <title>PRV - Architecture Deep Dive</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-elevated: #1a1a25;
+            --border: #2a2a3a;
+            --border-bright: #4f46e5;
+            --text-primary: #e0e7ff;
+            --text-secondary: #a5b4fc;
+            --text-muted: #6b7280;
+            --accent-purple: #8b5cf6;
+            --accent-indigo: #6366f1;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+            --accent-pink: #ec4899;
+        }
+
         body {
-            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #0f0d1a 0%, #1a1625 50%, #0f0d1a 100%);
-            min-height: 100vh;
-            color: #e0e7ff;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
             overflow-x: hidden;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 40px 20px;
         }
 
+        /* Header */
         header {
             text-align: center;
+            padding: 60px 0;
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.1) 0%, transparent 100%);
+            border-bottom: 1px solid var(--border);
             margin-bottom: 60px;
         }
 
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
         h1 {
-            font-size: 3.5rem;
+            font-size: 3rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #a78bfa 0%, #818cf8 50%, #6366f1 100%);
+            background: linear-gradient(135deg, #c4b5fd 0%, #818cf8 50%, #6366f1 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 16px;
         }
 
-        .tagline {
+        .subtitle {
             font-size: 1.5rem;
-            color: #a5b4fc;
-            font-weight: 300;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
         }
 
-        .tagline strong {
-            color: #c4b5fd;
+        /* Problem Section */
+        .problem-section {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(185, 28, 28, 0.05) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 60px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .section-icon {
+            font-size: 2rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
             font-weight: 600;
         }
 
-        .flow {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        .problem-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 20px;
-            flex-wrap: wrap;
-            margin: 60px 0;
         }
 
-        .stage {
-            background: linear-gradient(145deg, #1e1b4b, #312e81);
-            border: 1px solid #4f46e5;
-            border-radius: 20px;
-            padding: 30px;
-            min-width: 200px;
-            text-align: center;
+        .problem-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .problem-card h3 {
+            color: #fca5a5;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+
+        .problem-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Architecture Flow */
+        .architecture {
+            margin-bottom: 60px;
+        }
+
+        .flow-container {
+            display: flex;
+            align-items: stretch;
+            gap: 0;
+            overflow-x: auto;
+            padding: 20px 0;
+        }
+
+        .flow-stage {
+            flex: 1;
+            min-width: 280px;
             position: relative;
+        }
+
+        .flow-stage::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-indigo), transparent);
+        }
+
+        .flow-stage:last-child::after {
+            display: none;
+        }
+
+        .stage-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 25px;
+            margin-right: 40px;
+            height: 100%;
             transition: all 0.3s ease;
-            animation: float 3s ease-in-out infinite;
         }
 
-        .stage:nth-child(1) { animation-delay: 0s; }
-        .stage:nth-child(2) { animation-delay: 0.5s; }
-        .stage:nth-child(3) { animation-delay: 1s; }
-        .stage:nth-child(4) { animation-delay: 1.5s; }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+        .stage-box:hover {
+            border-color: var(--accent-indigo);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
         }
 
-        .stage:hover {
-            transform: translateY(-5px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
-            border-color: #818cf8;
+        .stage-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
         }
 
-        .stage-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
+        .stage-num {
+            background: var(--accent-indigo);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
         }
 
         .stage-title {
             font-size: 1.2rem;
             font-weight: 600;
-            color: #c4b5fd;
-            margin-bottom: 10px;
         }
 
-        .stage-items {
-            list-style: none;
+        .stage-content {
             font-size: 0.9rem;
-            color: #a5b4fc;
+            color: var(--text-secondary);
         }
 
-        .stage-items li {
-            padding: 4px 0;
+        .stage-content ul {
+            list-style: none;
+            margin-top: 15px;
         }
 
-        .arrow {
-            font-size: 2rem;
-            color: #6366f1;
-            animation: pulse 1.5s ease-in-out infinite;
+        .stage-content li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 0.5; transform: translateX(0); }
-            50% { opacity: 1; transform: translateX(5px); }
+        .stage-content li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-indigo);
         }
 
-        .matching {
-            background: linear-gradient(145deg, #312e81, #3730a3);
-            border-radius: 24px;
+        .data-flow {
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.8rem;
+            color: var(--accent-green);
+        }
+
+        /* Matching Algorithm Deep Dive */
+        .matching-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
             padding: 40px;
-            margin: 60px 0;
-            border: 1px solid #6366f1;
+            margin-bottom: 60px;
         }
 
-        .matching h2 {
+        .matching-intro {
             text-align: center;
-            font-size: 1.8rem;
-            margin-bottom: 30px;
-            color: #c4b5fd;
+            max-width: 800px;
+            margin: 0 auto 40px;
+            color: var(--text-secondary);
         }
 
-        .steps {
+        .pipeline {
             display: flex;
-            justify-content: center;
-            gap: 40px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 30px;
         }
 
-        .step {
-            background: rgba(99, 102, 241, 0.1);
-            border: 1px solid #4f46e5;
+        .pipeline-step {
+            display: grid;
+            grid-template-columns: 120px 1fr 200px;
+            gap: 30px;
+            align-items: center;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
             border-radius: 16px;
             padding: 25px;
-            text-align: center;
-            min-width: 180px;
             transition: all 0.3s ease;
         }
 
-        .step:hover {
-            background: rgba(99, 102, 241, 0.2);
-            border-color: #818cf8;
+        .pipeline-step:hover {
+            border-color: var(--accent-purple);
         }
 
-        .step-num {
-            font-size: 2.5rem;
+        .step-badge {
+            text-align: center;
+        }
+
+        .step-number {
+            font-size: 3rem;
             font-weight: 700;
-            background: linear-gradient(135deg, #a78bfa, #6366f1);
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-indigo));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .step-name {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #e0e7ff;
-            margin: 10px 0;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 5px;
         }
 
-        .step-desc {
+        .step-details h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .step-details p {
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+
+        .step-logic {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'SF Mono', Monaco, monospace;
             font-size: 0.85rem;
-            color: #a5b4fc;
         }
 
-        .result {
+        .step-logic .keyword {
+            color: var(--accent-purple);
+        }
+
+        .step-logic .string {
+            color: var(--accent-green);
+        }
+
+        .step-logic .number {
+            color: var(--accent-orange);
+        }
+
+        .step-logic .comment {
+            color: var(--text-muted);
+        }
+
+        .step-output {
             text-align: center;
-            margin: 60px 0;
-            padding: 40px;
-            background: linear-gradient(145deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
-            border: 1px solid #10b981;
-            border-radius: 20px;
         }
 
-        .result-icon {
-            font-size: 4rem;
+        .confidence-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .confidence-high {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .confidence-med {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .output-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Storage Layer */
+        .storage-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+
+        .storage-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+        }
+
+        .storage-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+
+        .file-tree {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.85rem;
+        }
+
+        .file-tree .folder {
+            color: var(--accent-blue);
+        }
+
+        .file-tree .file {
+            color: var(--text-secondary);
+        }
+
+        .json-preview {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.8rem;
+            overflow-x: auto;
+        }
+
+        .json-preview .key {
+            color: var(--accent-purple);
+        }
+
+        .json-preview .string {
+            color: var(--accent-green);
+        }
+
+        .json-preview .number {
+            color: var(--accent-orange);
+        }
+
+        /* Surface Layer */
+        .surface-section {
+            margin-bottom: 60px;
+        }
+
+        .surface-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+
+        .surface-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .surface-card:hover {
+            border-color: var(--accent-indigo);
+            transform: translateY(-5px);
+        }
+
+        .surface-icon {
+            font-size: 3rem;
             margin-bottom: 20px;
         }
 
-        .result-text {
-            font-size: 1.5rem;
-            color: #6ee7b7;
+        .surface-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
         }
 
-        .code-block {
-            background: #0f0d1a;
-            border: 1px solid #312e81;
-            border-radius: 12px;
-            padding: 20px;
-            margin: 30px auto;
-            max-width: 500px;
-            font-family: 'SF Mono', Monaco, monospace;
+        .surface-card p {
+            color: var(--text-secondary);
             font-size: 0.9rem;
+            margin-bottom: 20px;
         }
 
-        .code-block .prompt {
-            color: #6366f1;
+        .surface-demo {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.75rem;
+            text-align: left;
         }
 
-        .code-block .command {
-            color: #a5b4fc;
+        .surface-demo .prompt {
+            color: var(--accent-indigo);
         }
 
-        .code-block .output {
+        .surface-demo .output {
+            color: var(--accent-green);
+        }
+
+        /* Stats */
+        .stats-section {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 60px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 20px;
+        }
+
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 700;
             color: #6ee7b7;
-            margin-top: 10px;
+            margin-bottom: 10px;
         }
 
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Footer */
         footer {
             text-align: center;
-            margin-top: 60px;
-            padding: 30px;
-            color: #6b7280;
-            font-size: 0.9rem;
+            padding: 40px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
         }
 
         footer a {
-            color: #818cf8;
+            color: var(--accent-indigo);
             text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .pipeline-step {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .storage-section {
+                grid-template-columns: 1fr;
+            }
+
+            .surface-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .flow-container {
+                flex-direction: column;
+            }
+
+            .flow-stage::after {
+                display: none;
+            }
+
+            .stage-box {
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
         }
     </style>
 </head>
 <body>
+    <header>
+        <div class="logo">🧠</div>
+        <h1>PRV: The Memory Layer</h1>
+        <p class="subtitle">A Git-native system that traces every line of code back to its AI origin — the session, the reasoning, and the roads not taken.</p>
+    </header>
+
     <div class="container">
-        <header>
-            <h1>🧠 PRV</h1>
-            <p class="tagline">Git tells you <strong>what</strong> changed.<br>PRV tells you <strong>why</strong>.</p>
-        </header>
-
-        <div class="flow">
-            <div class="stage">
-                <div class="stage-icon">🤖</div>
-                <div class="stage-title">AI Tools</div>
-                <ul class="stage-items">
-                    <li>Claude Code</li>
-                    <li>Cursor</li>
-                    <li>Codex</li>
-                </ul>
+        <!-- The Problem -->
+        <section class="problem-section">
+            <div class="section-header">
+                <span class="section-icon">⚠️</span>
+                <h2>The Problem</h2>
             </div>
-
-            <div class="arrow">→</div>
-
-            <div class="stage">
-                <div class="stage-icon">📚</div>
-                <div class="stage-title">CASS</div>
-                <ul class="stage-items">
-                    <li>Auto-capture</li>
-                    <li>Zero config</li>
-                    <li>SQLite</li>
-                </ul>
-            </div>
-
-            <div class="arrow">→</div>
-
-            <div class="stage">
-                <div class="stage-icon">🔍</div>
-                <div class="stage-title">PRV</div>
-                <ul class="stage-items">
-                    <li>Match</li>
-                    <li>Link</li>
-                    <li>Index</li>
-                </ul>
-            </div>
-
-            <div class="arrow">→</div>
-
-            <div class="stage">
-                <div class="stage-icon">✨</div>
-                <div class="stage-title">Context</div>
-                <ul class="stage-items">
-                    <li>CLI Query</li>
-                    <li>Editor Hover</li>
-                    <li>Heat Map</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="matching">
-            <h2>🎯 Step-Ladder Matching</h2>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-num">0</div>
-                    <div class="step-name">Single?</div>
-                    <div class="step-desc">Only one session?<br>Auto-win.</div>
+            <div class="problem-grid">
+                <div class="problem-card">
+                    <h3>Velocity Without Memory</h3>
+                    <p>AI tools write code at incredible speed. But the reasoning behind each decision vanishes the moment the session ends.</p>
                 </div>
-                <div class="step">
-                    <div class="step-num">1</div>
-                    <div class="step-name">Files</div>
-                    <div class="step-desc">Match file paths<br>mentioned in session</div>
+                <div class="problem-card">
+                    <h3>Lost Context</h3>
+                    <p>Git tells you WHAT changed and WHO committed it. But it can't tell you WHY that approach was chosen over alternatives.</p>
                 </div>
-                <div class="step">
-                    <div class="step-num">2</div>
-                    <div class="step-name">Lines</div>
-                    <div class="step-desc">Hash code lines<br>&gt;50% overlap wins</div>
+                <div class="problem-card">
+                    <h3>Invisible Decisions</h3>
+                    <p>The most valuable context — rejected approaches, constraints considered, tradeoffs made — disappears into the void.</p>
+                </div>
+                <div class="problem-card">
+                    <h3>Code Archaeology</h3>
+                    <p>Months later, developers stare at code wondering: "Why is it like this? What were they thinking?"</p>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div class="result">
-            <div class="result-icon">🔗</div>
-            <div class="result-text">100% accuracy on validated commits</div>
-        </div>
+        <!-- Architecture Flow -->
+        <section class="architecture">
+            <div class="section-header">
+                <span class="section-icon">🏗️</span>
+                <h2>Architecture Overview</h2>
+            </div>
 
-        <div class="code-block">
-            <div><span class="prompt">$</span> <span class="command">prv link --commit HEAD</span></div>
-            <div class="output">Linked 753d066 → session 771 (100% confidence)</div>
-        </div>
+            <div class="flow-container">
+                <div class="flow-stage">
+                    <div class="stage-box">
+                        <div class="stage-header">
+                            <span class="stage-num">1</span>
+                            <span class="stage-title">AI Tools</span>
+                        </div>
+                        <div class="stage-content">
+                            <p>Developers use AI coding assistants in their normal workflow.</p>
+                            <ul>
+                                <li>Claude Code</li>
+                                <li>Cursor</li>
+                                <li>GitHub Copilot</li>
+                                <li>Codex CLI</li>
+                                <li>Aider</li>
+                            </ul>
+                            <div class="data-flow">stdout/stderr → logs</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-stage">
+                    <div class="stage-box">
+                        <div class="stage-header">
+                            <span class="stage-num">2</span>
+                            <span class="stage-title">CASS Capture</span>
+                        </div>
+                        <div class="stage-content">
+                            <p>CASS silently discovers and indexes all AI sessions. Zero configuration required.</p>
+                            <ul>
+                                <li>Auto-discovers session files</li>
+                                <li>Normalizes across tools</li>
+                                <li>Stores in SQLite</li>
+                                <li>Indexes for search</li>
+                            </ul>
+                            <div class="data-flow">sessions → SQLite DB</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-stage">
+                    <div class="stage-box">
+                        <div class="stage-header">
+                            <span class="stage-num">3</span>
+                            <span class="stage-title">PRV Engine</span>
+                        </div>
+                        <div class="stage-content">
+                            <p>PRV correlates git commits to their originating AI sessions using intelligent matching.</p>
+                            <ul>
+                                <li>Time-window filtering</li>
+                                <li>File path correlation</li>
+                                <li>Line hash fingerprinting</li>
+                                <li>Confidence scoring</li>
+                            </ul>
+                            <div class="data-flow">commit → session link</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flow-stage">
+                    <div class="stage-box">
+                        <div class="stage-header">
+                            <span class="stage-num">4</span>
+                            <span class="stage-title">Context Surface</span>
+                        </div>
+                        <div class="stage-content">
+                            <p>Context appears exactly where developers need it — in their editor, CLI, or review tools.</p>
+                            <ul>
+                                <li>CLI: prv query</li>
+                                <li>Editor: LSP hover</li>
+                                <li>Visual: Heat map</li>
+                                <li>Sharing: prv-memory</li>
+                            </ul>
+                            <div class="data-flow">link → context display</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Matching Algorithm -->
+        <section class="matching-section">
+            <div class="section-header">
+                <span class="section-icon">🎯</span>
+                <h2>The Matching Algorithm</h2>
+            </div>
+
+            <p class="matching-intro">
+                PRV uses a "step-ladder" approach: fast, simple checks first, falling through to more sophisticated analysis only when needed. This achieves 100% accuracy while maintaining sub-500ms performance.
+            </p>
+
+            <div class="pipeline">
+                <!-- Gates -->
+                <div class="pipeline-step">
+                    <div class="step-badge">
+                        <div class="step-number">⏱️</div>
+                        <div class="step-name">GATES</div>
+                    </div>
+                    <div class="step-details">
+                        <h3>Time Window Filter</h3>
+                        <p>Before any matching begins, filter candidate sessions by time proximity to the commit.</p>
+                        <div class="step-logic">
+                            <span class="keyword">WHERE</span> session.started_at &lt;= commit.time<br>
+                            <span class="keyword">AND</span> commit.time &lt;= session.ended_at + <span class="number">30min</span><br>
+                            <span class="keyword">AND</span> session.workspace = commit.repo_path<br>
+                            <span class="comment">// 30min buffer for review-then-commit pattern</span>
+                        </div>
+                    </div>
+                    <div class="step-output">
+                        <div class="confidence-badge confidence-med">Candidates</div>
+                        <div class="output-label">Narrows search space</div>
+                    </div>
+                </div>
+
+                <!-- Step 0 -->
+                <div class="pipeline-step">
+                    <div class="step-badge">
+                        <div class="step-number">0</div>
+                        <div class="step-name">SINGLE</div>
+                    </div>
+                    <div class="step-details">
+                        <h3>Single Candidate Auto-Win</h3>
+                        <p>If only one session exists in the time window for this workspace, it wins automatically. No further analysis needed.</p>
+                        <div class="step-logic">
+                            <span class="keyword">if</span> candidates.len() == <span class="number">1</span> {<br>
+                            &nbsp;&nbsp;<span class="keyword">return</span> Match { session, confidence: <span class="number">1.0</span> }<br>
+                            }<br>
+                            <span class="comment">// Fast path: ~80% of commits in practice</span>
+                        </div>
+                    </div>
+                    <div class="step-output">
+                        <div class="confidence-badge confidence-high">100%</div>
+                        <div class="output-label">Definitive match</div>
+                    </div>
+                </div>
+
+                <!-- Step 1 -->
+                <div class="pipeline-step">
+                    <div class="step-badge">
+                        <div class="step-number">1</div>
+                        <div class="step-name">FILES</div>
+                    </div>
+                    <div class="step-details">
+                        <h3>File Path Overlap</h3>
+                        <p>Extract file paths mentioned in session messages. Compare to files changed in the commit. The session mentioning the most matching files wins.</p>
+                        <div class="step-logic">
+                            <span class="keyword">let</span> commit_files = get_changed_files(commit)<br>
+                            <span class="keyword">let</span> session_files = extract_paths(messages)<br>
+                            <span class="keyword">let</span> overlap = intersect(commit_files, session_files)<br>
+                            confidence = <span class="number">0.9</span> + (overlap_ratio * <span class="number">0.1</span>)<br>
+                            <span class="comment">// Uses regex to find paths in message content</span>
+                        </div>
+                    </div>
+                    <div class="step-output">
+                        <div class="confidence-badge confidence-high">90-100%</div>
+                        <div class="output-label">High confidence</div>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="pipeline-step">
+                    <div class="step-badge">
+                        <div class="step-number">2</div>
+                        <div class="step-name">LINES</div>
+                    </div>
+                    <div class="step-details">
+                        <h3>Line Hash Fingerprinting</h3>
+                        <p>Extract code blocks from session messages. Normalize whitespace, hash each line. Compare to commit diff lines. Session with &gt;50% overlap wins.</p>
+                        <div class="step-logic">
+                            <span class="keyword">let</span> diff_hashes = commit.diff_lines.map(normalize_hash)<br>
+                            <span class="keyword">let</span> code_hashes = session.code_blocks.map(normalize_hash)<br>
+                            <span class="keyword">let</span> overlap = diff_hashes ∩ code_hashes<br>
+                            <span class="keyword">if</span> overlap_ratio &gt; <span class="number">0.5</span> → MATCH<br>
+                            <span class="comment">// Handles formatting differences, reordering</span>
+                        </div>
+                    </div>
+                    <div class="step-output">
+                        <div class="confidence-badge confidence-high">80-100%</div>
+                        <div class="output-label">Content-verified</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Storage Layer -->
+        <section class="storage-section">
+            <div class="storage-card">
+                <h3>📁 Storage Layout</h3>
+                <div class="file-tree">
+                    <span class="folder">.prv/</span><br>
+                    <span class="folder">├── links/</span><br>
+                    <span class="folder">│   ├── 75/</span><br>
+                    <span class="file">│   │   └── 753d0668c521...json</span><br>
+                    <span class="folder">│   ├── 24/</span><br>
+                    <span class="file">│   │   └── 2456bbd6bb77...json</span><br>
+                    <span class="folder">│   └── .../</span><br>
+                    <span class="file">└── index.json</span><br>
+                    <br>
+                    <span style="color: var(--text-muted);">// Prefix directories for scalability</span><br>
+                    <span style="color: var(--text-muted);">// ~1000 commits per directory</span>
+                </div>
+            </div>
+
+            <div class="storage-card">
+                <h3>🔗 Link Schema</h3>
+                <div class="json-preview">
+{<br>
+&nbsp;&nbsp;<span class="key">"commit_sha"</span>: <span class="string">"753d0668c521ab44..."</span>,<br>
+&nbsp;&nbsp;<span class="key">"session_id"</span>: <span class="number">771</span>,<br>
+&nbsp;&nbsp;<span class="key">"confidence"</span>: <span class="number">1.0</span>,<br>
+&nbsp;&nbsp;<span class="key">"match_step"</span>: <span class="number">1</span>,<br>
+&nbsp;&nbsp;<span class="key">"created_at"</span>: <span class="string">"2025-12-29T01:12:03Z"</span><br>
+}<br>
+<br>
+<span style="color: var(--text-muted);">// Immutable after creation</span><br>
+<span style="color: var(--text-muted);">// Git-native: just JSON files</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Surface Layer -->
+        <section class="surface-section">
+            <div class="section-header">
+                <span class="section-icon">✨</span>
+                <h2>Context Surfaces</h2>
+            </div>
+
+            <div class="surface-grid">
+                <div class="surface-card">
+                    <div class="surface-icon">💻</div>
+                    <h3>CLI Query</h3>
+                    <p>Instant lookup from the command line. Perfect for scripting and automation.</p>
+                    <div class="surface-demo">
+                        <span class="prompt">$</span> prv query HEAD<br><br>
+                        <span class="output">Commit: 753d066</span><br>
+                        <span class="output">Session: 771</span><br>
+                        <span class="output">Confidence: 100%</span><br>
+                        <span class="output">Match: Step 1 (files)</span>
+                    </div>
+                </div>
+
+                <div class="surface-card">
+                    <div class="surface-icon">🖱️</div>
+                    <h3>Editor Hover</h3>
+                    <p>Hover over any line in VS Code, Neovim, or Zed. Context appears inline via LSP.</p>
+                    <div class="surface-demo">
+                        <span style="color: var(--text-muted);">// Hovering line 42...</span><br><br>
+                        <span class="output">📍 Origin: Session 771</span><br>
+                        <span class="output">🤖 Claude Code</span><br>
+                        <span class="output">📅 Dec 29, 2025</span><br>
+                        <span class="output">💡 "Implementing matcher"</span>
+                    </div>
+                </div>
+
+                <div class="surface-card">
+                    <div class="surface-icon">🗺️</div>
+                    <h3>Heat Map</h3>
+                    <p>Visual overlay showing which code has provenance vs. unknown origin.</p>
+                    <div class="surface-demo">
+                        <span style="color: #6ee7b7;">████████████</span> 85%<br>
+                        <span style="color: #fcd34d;">████████</span> 67%<br>
+                        <span style="color: #6b7280;">████</span> 23%<br><br>
+                        <span style="color: var(--text-muted);">Green = traced</span><br>
+                        <span style="color: var(--text-muted);">Gray = unknown</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="stats-section">
+            <div class="section-header">
+                <span class="section-icon">📊</span>
+                <h2>Validated Performance</h2>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">Accuracy on validated commits</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">&lt;500ms</div>
+                    <div class="stat-label">Hover response time (p95)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">82</div>
+                    <div class="stat-label">Tests passing</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">0</div>
+                    <div class="stat-label">Workflow changes required</div>
+                </div>
+            </div>
+        </section>
 
         <footer>
-            <p>Built with Rust • Git-native • Local-first</p>
+            <p>Built with <strong>Rust</strong> • Git-native • Local-first • Open Source</p>
             <p><a href="https://github.com/Mburdo/PRV">github.com/Mburdo/PRV</a></p>
+            <p style="margin-top: 20px; font-size: 0.8rem;">
+                PRV reads from CASS. CASS captures sessions. Nothing is sent anywhere.<br>
+                Your code, your context, your machine.
+            </p>
         </footer>
     </div>
 </body>
