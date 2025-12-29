@@ -14,6 +14,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Query linked session for a commit
+    Query {
+        /// Commit SHA, branch name, or HEAD
+        #[arg(default_value = "HEAD")]
+        commit: String,
+
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Debug utilities
     Debug {
         #[command(subcommand)]
@@ -31,6 +42,9 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Some(Commands::Query { commit, json }) => {
+            query_commit(&commit, json)?;
+        }
         Some(Commands::Debug { debug_cmd }) => match debug_cmd {
             DebugCommands::Cass => {
                 debug_cass()?;
@@ -43,6 +57,59 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn query_commit(commit_ref: &str, json_output: bool) -> Result<()> {
+    use prv_core::LinkStorage;
+
+    // Open the git repository
+    let repo = git2::Repository::open_from_env().map_err(|e| {
+        anyhow::anyhow!("Not in a git repository: {}", e)
+    })?;
+
+    let workdir = repo.workdir().ok_or_else(|| {
+        anyhow::anyhow!("Repository has no working directory (bare repo?)")
+    })?;
+
+    // Resolve the commit reference to a full SHA
+    let commit_sha = resolve_commit(&repo, commit_ref)?;
+
+    // Load link from storage
+    let storage = LinkStorage::new(workdir);
+
+    match storage.load(&commit_sha)? {
+        Some(link) => {
+            if json_output {
+                println!("{}", serde_json::to_string_pretty(&link)?);
+            } else {
+                println!("Commit:     {}", &commit_sha[..7.min(commit_sha.len())]);
+                println!("Session:    {}", link.session_id);
+                println!("Confidence: {:.0}%", link.confidence * 100.0);
+                println!("Match step: {}", link.match_step);
+                println!("Linked at:  {}", link.created_at.format("%Y-%m-%d %H:%M:%S UTC"));
+            }
+        }
+        None => {
+            let short_sha = &commit_sha[..7.min(commit_sha.len())];
+            println!("No link found for {}.", short_sha);
+            println!("Run `prv link --commit {}` to create one.", short_sha);
+        }
+    }
+
+    Ok(())
+}
+
+fn resolve_commit(repo: &git2::Repository, commit_ref: &str) -> Result<String> {
+    // Try to resolve as a reference (HEAD, branch name, etc.)
+    let obj = repo.revparse_single(commit_ref).map_err(|e| {
+        anyhow::anyhow!("Cannot resolve '{}': {}", commit_ref, e)
+    })?;
+
+    let commit = obj.peel_to_commit().map_err(|e| {
+        anyhow::anyhow!("'{}' is not a commit: {}", commit_ref, e)
+    })?;
+
+    Ok(commit.id().to_string())
 }
 
 fn debug_cass() -> Result<()> {

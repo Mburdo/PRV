@@ -7,6 +7,8 @@
 
 pub mod gates;
 pub mod step0;
+pub mod step1;
 
 pub use gates::{candidate_sessions, Conversation, ConversationStore, Workspace};
 pub use step0::{match_step0, MatchResult};
+pub use step1::{match_step1, match_step1_simple, ConversationWithFiles, FileMentions};
