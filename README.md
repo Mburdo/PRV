@@ -22,42 +22,57 @@ It traces any line of code back to its origin — the AI session that created it
 ## How It Works
 
 ```mermaid
-flowchart TB
-    subgraph AI["🤖 AI-Assisted Development"]
-        CC[Claude Code]
-        CU[Cursor]
-        CO[Codex]
-        OTHER[Other Tools]
+%%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#6366f1', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4f46e5', 'lineColor': '#a5b4fc', 'secondaryColor': '#1e1b4b', 'tertiaryColor': '#312e81', 'background': '#0f0d1a', 'mainBkg': '#1e1b4b', 'nodeBorder': '#6366f1', 'clusterBkg': '#1e1b4b', 'clusterBorder': '#4f46e5', 'titleColor': '#e0e7ff'}}}%%
+
+flowchart LR
+    subgraph INPUT[" "]
+        direction TB
+        CC["☁️ Claude Code"]
+        CU["✨ Cursor"]
+        CO["🔮 Codex"]
+        GIT["📦 Git Commits"]
     end
 
-    subgraph CASS["📚 CASS - Invisible Capture"]
-        DISCOVER[Auto-Discovery] --> NORM[Normalization] --> SQLITE[(SQLite)]
+    subgraph CAPTURE["CASS"]
+        direction TB
+        C1["🔍 Discover"]
+        C2["📝 Normalize"]
+        C3[("💾 SQLite")]
+        C1 --> C2 --> C3
     end
 
-    subgraph PRV["🔍 PRV - The Memory Layer"]
-        subgraph MATCH["Step-Ladder Matching"]
-            GATES["⏱️ Time Gates"] --> STEP0["Step 0: Single?"]
-            STEP0 --> STEP1["Step 1: File Overlap"]
-            STEP1 --> STEP2["Step 2: Line Hash"]
+    subgraph ENGINE["PRV Engine"]
+        direction TB
+
+        subgraph MATCH[" "]
+            direction LR
+            M0["⏱️ Gates"]
+            M1["📁 Files"]
+            M2["#️⃣ Hashes"]
+            M0 --> M1 --> M2
         end
-        STORE[".prv/links/"]
-        MATCH --> STORE
+
+        LINK["🔗 Link"]
+        MATCH --> LINK
     end
 
-    subgraph GIT["📦 Git"]
-        COMMIT["git commit"] --> HISTORY[("History")]
+    subgraph OUTPUT[" "]
+        direction TB
+        O1["💻 CLI"]
+        O2["🖱️ Hover"]
+        O3["🗺️ Heat Map"]
     end
 
-    subgraph SURFACE["✨ Context Everywhere"]
-        CLI["CLI: prv query"]
-        LSP["Editor: Hover"]
-        HEAT["Visual: Heat Map"]
-    end
+    CC & CU & CO --> CAPTURE
+    GIT --> ENGINE
+    CAPTURE --> ENGINE
+    ENGINE --> OUTPUT
 
-    AI --> CASS
-    CASS --> PRV
-    GIT --> PRV
-    PRV --> SURFACE
+    style INPUT fill:#0f172a,stroke:#334155,color:#e2e8f0
+    style CAPTURE fill:#1e1b4b,stroke:#6366f1,color:#e0e7ff
+    style ENGINE fill:#312e81,stroke:#8b5cf6,color:#f5f3ff
+    style MATCH fill:#3730a3,stroke:#a78bfa,color:#f5f3ff
+    style OUTPUT fill:#4c1d95,stroke:#a855f7,color:#faf5ff
 ```
 
 PRV reads session data from [CASS](https://github.com/Dicklesworthstone/coding_agent_session_search) (Coding Agent Session Search), which automatically captures sessions from Claude Code, Cursor, Codex, and other AI tools. PRV then:

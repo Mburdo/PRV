@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRV - The Memory Layer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0f0d1a 0%, #1a1625 50%, #0f0d1a 100%);
+            min-height: 100vh;
+            color: #e0e7ff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa 0%, #818cf8 50%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+        }
+
+        .tagline {
+            font-size: 1.5rem;
+            color: #a5b4fc;
+            font-weight: 300;
+        }
+
+        .tagline strong {
+            color: #c4b5fd;
+            font-weight: 600;
+        }
+
+        .flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 60px 0;
+        }
+
+        .stage {
+            background: linear-gradient(145deg, #1e1b4b, #312e81);
+            border: 1px solid #4f46e5;
+            border-radius: 20px;
+            padding: 30px;
+            min-width: 200px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .stage:nth-child(1) { animation-delay: 0s; }
+        .stage:nth-child(2) { animation-delay: 0.5s; }
+        .stage:nth-child(3) { animation-delay: 1s; }
+        .stage:nth-child(4) { animation-delay: 1.5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .stage:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+            border-color: #818cf8;
+        }
+
+        .stage-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .stage-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #c4b5fd;
+            margin-bottom: 10px;
+        }
+
+        .stage-items {
+            list-style: none;
+            font-size: 0.9rem;
+            color: #a5b4fc;
+        }
+
+        .stage-items li {
+            padding: 4px 0;
+        }
+
+        .arrow {
+            font-size: 2rem;
+            color: #6366f1;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: translateX(0); }
+            50% { opacity: 1; transform: translateX(5px); }
+        }
+
+        .matching {
+            background: linear-gradient(145deg, #312e81, #3730a3);
+            border-radius: 24px;
+            padding: 40px;
+            margin: 60px 0;
+            border: 1px solid #6366f1;
+        }
+
+        .matching h2 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 30px;
+            color: #c4b5fd;
+        }
+
+        .steps {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid #4f46e5;
+            border-radius: 16px;
+            padding: 25px;
+            text-align: center;
+            min-width: 180px;
+            transition: all 0.3s ease;
+        }
+
+        .step:hover {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: #818cf8;
+        }
+
+        .step-num {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .step-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e0e7ff;
+            margin: 10px 0;
+        }
+
+        .step-desc {
+            font-size: 0.85rem;
+            color: #a5b4fc;
+        }
+
+        .result {
+            text-align: center;
+            margin: 60px 0;
+            padding: 40px;
+            background: linear-gradient(145deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+            border: 1px solid #10b981;
+            border-radius: 20px;
+        }
+
+        .result-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .result-text {
+            font-size: 1.5rem;
+            color: #6ee7b7;
+        }
+
+        .code-block {
+            background: #0f0d1a;
+            border: 1px solid #312e81;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px auto;
+            max-width: 500px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 0.9rem;
+        }
+
+        .code-block .prompt {
+            color: #6366f1;
+        }
+
+        .code-block .command {
+            color: #a5b4fc;
+        }
+
+        .code-block .output {
+            color: #6ee7b7;
+            margin-top: 10px;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            padding: 30px;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧠 PRV</h1>
+            <p class="tagline">Git tells you <strong>what</strong> changed.<br>PRV tells you <strong>why</strong>.</p>
+        </header>
+
+        <div class="flow">
+            <div class="stage">
+                <div class="stage-icon">🤖</div>
+                <div class="stage-title">AI Tools</div>
+                <ul class="stage-items">
+                    <li>Claude Code</li>
+                    <li>Cursor</li>
+                    <li>Codex</li>
+                </ul>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="stage">
+                <div class="stage-icon">📚</div>
+                <div class="stage-title">CASS</div>
+                <ul class="stage-items">
+                    <li>Auto-capture</li>
+                    <li>Zero config</li>
+                    <li>SQLite</li>
+                </ul>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="stage">
+                <div class="stage-icon">🔍</div>
+                <div class="stage-title">PRV</div>
+                <ul class="stage-items">
+                    <li>Match</li>
+                    <li>Link</li>
+                    <li>Index</li>
+                </ul>
+            </div>
+
+            <div class="arrow">→</div>
+
+            <div class="stage">
+                <div class="stage-icon">✨</div>
+                <div class="stage-title">Context</div>
+                <ul class="stage-items">
+                    <li>CLI Query</li>
+                    <li>Editor Hover</li>
+                    <li>Heat Map</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="matching">
+            <h2>🎯 Step-Ladder Matching</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-num">0</div>
+                    <div class="step-name">Single?</div>
+                    <div class="step-desc">Only one session?<br>Auto-win.</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-name">Files</div>
+                    <div class="step-desc">Match file paths<br>mentioned in session</div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-name">Lines</div>
+                    <div class="step-desc">Hash code lines<br>&gt;50% overlap wins</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="result">
+            <div class="result-icon">🔗</div>
+            <div class="result-text">100% accuracy on validated commits</div>
+        </div>
+
+        <div class="code-block">
+            <div><span class="prompt">$</span> <span class="command">prv link --commit HEAD</span></div>
+            <div class="output">Linked 753d066 → session 771 (100% confidence)</div>
+        </div>
+
+        <footer>
+            <p>Built with Rust • Git-native • Local-first</p>
+            <p><a href="https://github.com/Mburdo/PRV">github.com/Mburdo/PRV</a></p>
+        </footer>
+    </div>
+</body>
+</html>
