@@ -5,11 +5,13 @@
 
 pub mod code_block;
 pub mod link;
+pub mod link_index;
 pub mod link_storage;
 pub mod matcher;
 
 pub use code_block::{extract_code_blocks, CodeBlock};
 pub use link::Link;
+pub use link_index::LinkIndex;
 pub use link_storage::LinkStorage;
 pub use matcher::{candidate_sessions, Conversation, ConversationStore, Workspace};
 
