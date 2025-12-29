@@ -79,7 +79,11 @@ pub fn extract_code_blocks(text: &str) -> Vec<CodeBlock> {
             }
 
             // Trim trailing empty lines
-            while block_lines.last().map(|s| s.trim().is_empty()).unwrap_or(false) {
+            while block_lines
+                .last()
+                .map(|s| s.trim().is_empty())
+                .unwrap_or(false)
+            {
                 block_lines.pop();
             }
 
@@ -110,7 +114,11 @@ pub fn extract_code_blocks(text: &str) -> Vec<CodeBlock> {
 
             if !added_lines.is_empty() {
                 let content = added_lines.join("\n") + "\n";
-                blocks.push(CodeBlock::new(content, Some("diff".to_string()), source_line));
+                blocks.push(CodeBlock::new(
+                    content,
+                    Some("diff".to_string()),
+                    source_line,
+                ));
             }
         }
     }
@@ -216,7 +224,8 @@ mod tests {
 
     #[test]
     fn test_4space_indent() {
-        let text = "Some text:\n\n    fn main() {\n        println!(\"hello\");\n    }\n\nMore text.";
+        let text =
+            "Some text:\n\n    fn main() {\n        println!(\"hello\");\n    }\n\nMore text.";
         let blocks = extract_code_blocks(text);
         // Should find the indented block
         assert!(blocks.iter().any(|b| b.content.contains("fn main()")));
@@ -247,7 +256,9 @@ mod tests {
 "#;
         let blocks = extract_code_blocks(text);
         // Should find the diff block with + lines
-        let diff_block = blocks.iter().find(|b| b.language == Some("diff".to_string()));
+        let diff_block = blocks
+            .iter()
+            .find(|b| b.language == Some("diff".to_string()));
         assert!(diff_block.is_some());
         let content = &diff_block.unwrap().content;
         assert!(content.contains("added line 1"));
