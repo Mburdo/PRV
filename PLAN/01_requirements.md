@@ -294,8 +294,9 @@ PRV can chain sessions over time to show how understanding of code evolved.
 - [x] What's the right "buffer" time after session end for matching? → 30 minutes (AC-002.2)
 - [x] Heat map color thresholds? → >80% green, 20-80% yellow, <20% gray (AC-011.3)
 - [x] Summary schema design? → Defined in AC-010.6
+- [x] Fingerprinting algorithm details → 3-step pipeline: gates → step0 (single) → step1 (file overlap) → step2 (line hash)
+- [x] How to handle CASS snippets table being empty? → Extract from message content with regex
 
 **Open:**
 - [ ] How to handle sessions that span multiple commits? (link to all? primary only?)
 - [ ] Which LLM for summarization? Local (ollama) vs API? → SPIKE-004 will answer
-- [ ] Fingerprinting algorithm details (normalization, hash function) → SPIKE-002 will answer

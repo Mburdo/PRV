@@ -2,19 +2,19 @@
 
 ## Top Risks
 
-| Risk | Why It Matters | Likelihood | Impact | Resolution |
-|:-----|:---------------|:-----------|:-------|:-----------|
-| CASS schema changes | PRV depends on CASS SQLite structure; breaking changes break PRV | M | H | Spike + version pinning |
-| Fingerprint accuracy | Heuristic matching may miss or false-positive on edge cases | M | M | Spike + accept imperfection |
-| LSP performance | Hover must return in <500ms; git blame + CASS lookup chain | L | H | Benchmark early |
-| Rebase/squash handling | Git history rewrites orphan existing links | M | M | Accept or re-link strategy |
-| CASS not installed | PRV requires CASS; cold start UX | L | M | Clear error + install guide |
-| LLM summary quality | "Roads not taken" extraction may be inconsistent or miss alternatives | M | H | SPIKE-004 + prompt iteration |
-| LLM availability/cost | Local LLM may be too slow; API costs may accumulate | M | M | Support both, default local |
-| Heat map LSP support | Gutter annotations may not work across all editors | L | M | SPIKE-005 + CLI fallback |
-| Live working-tree overlay | File watchers + provisional matching may hurt perf or confuse UX | M | M | SPIKE-003 (expanded) + explicit provisional status |
-| Summary schema evolution | Schema changes break existing summaries | L | M | Version field + migration |
-| Alternative extraction reliability | Not all sessions discuss alternatives explicitly | H | M | Accept partial extraction, enrich UI
+| Risk | Why It Matters | Likelihood | Impact | Resolution | Status |
+|:-----|:---------------|:-----------|:-------|:-----------|:-------|
+| CASS schema changes | PRV depends on CASS SQLite structure; breaking changes break PRV | M | H | Spike + version pinning | ✅ Mitigated (schema stable) |
+| Fingerprint accuracy | Heuristic matching may miss or false-positive on edge cases | M | M | Spike + accept imperfection | ✅ Mitigated (100% on 7 commits) |
+| LSP performance | Hover must return in <500ms; git blame + CASS lookup chain | L | H | Benchmark early | Pending (Phase 2) |
+| Rebase/squash handling | Git history rewrites orphan existing links | M | M | Accept or re-link strategy | Pending |
+| CASS not installed | PRV requires CASS; cold start UX | L | M | Clear error + install guide | ✅ Handled (clear error) |
+| LLM summary quality | "Roads not taken" extraction may be inconsistent or miss alternatives | M | H | SPIKE-004 + prompt iteration | Pending (Phase 2) |
+| LLM availability/cost | Local LLM may be too slow; API costs may accumulate | M | M | Support both, default local | Pending (Phase 2) |
+| Heat map LSP support | Gutter annotations may not work across all editors | L | M | SPIKE-005 + CLI fallback | Pending (Phase 2) |
+| Live working-tree overlay | File watchers + provisional matching may hurt perf or confuse UX | M | M | SPIKE-003 (expanded) + explicit provisional status | Pending (Phase 2) |
+| Summary schema evolution | Schema changes break existing summaries | L | M | Version field + migration | Pending |
+| Alternative extraction reliability | Not all sessions discuss alternatives explicitly | H | M | Accept partial extraction, enrich UI | Pending (Phase 2) |
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### SPIKE-001: CASS SQLite Schema Investigation
 
-**Status:** Active
+**Status:** ✅ Complete (2024-12-27)
 
 **Goal:** Understand the CASS SQLite schema to design PRV's ingest layer.
 
@@ -163,7 +163,18 @@
 | Spike | Date | Outcome | Decision Made |
 |-------|------|---------|---------------|
 | SPIKE-001 | 2024-12-27 | Completed - schema documented | Proceed with CASS integration |
-| SPIKE-002 | 2025-12-28 | Completed - rubric + corpus + validation plan | Proceed to Phase 1 core linking |
+| SPIKE-002 | 2025-12-28 | Completed - step-ladder approach validated | Phase 1 implemented with 100% accuracy |
+
+### SPIKE-002 Implementation Results
+
+**Approach validated:** 3-step matching pipeline
+1. **Step 0:** Single candidate wins (if only one session in time window)
+2. **Step 1:** File path overlap (extract paths from message content, compare to commit files)
+3. **Step 2:** Line hash overlap (normalize lines, compare hashes, >50% overlap wins)
+
+**Key discovery:** CASS `snippets` table is empty. File paths and code blocks must be extracted from `messages.content` using regex.
+
+**Validation results:** 7 real commits tested, 100% accuracy (see `PLAN/support/validation-v1.md`)
 
 ---
 
@@ -258,3 +269,10 @@ PRV will need to:
 - Parse code blocks from message content
 - Implement time-window + fingerprint matching
 - Handle the case where snippets table is empty
+
+### Phase 1 Implementation Notes (2025-12-29)
+
+All concerns addressed:
+1. **Empty snippets:** Implemented `extract_file_paths()` and `extract_code_blocks()` to parse from message content
+2. **Timestamp granularity:** Time window gates filter candidates; fingerprinting disambiguates
+3. **File-level tracking:** Inferred from message content regex, works well in practice

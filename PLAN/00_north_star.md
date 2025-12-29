@@ -125,9 +125,10 @@ See `PLAN/01_requirements.md` for consolidated list. Summary:
 - [x] Time prior for matching — ECDF/decay (no hard cutoff)
 - [x] Heat map thresholds — >80%/20-80%/<20% (AC-011.3)
 - [x] Summary schema — Defined in AC-010.6
+- [x] Fingerprinting algorithm — 3-step pipeline (gates → step0 → step1 → step2)
+- [x] CASS snippets empty — Extract from message content with regex
 
 **Open (will be resolved by spikes):**
-- [ ] Fingerprinting algorithm — SPIKE-002
 - [ ] LLM for summarization — SPIKE-004
 - [ ] License choice — MIT vs Apache 2.0 (decision needed)
 

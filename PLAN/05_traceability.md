@@ -27,9 +27,9 @@
 | ID | Requirement | ADRs | Spikes | Tests | Status |
 |----|-------------|------|--------|-------|--------|
 | REQ-001 | LSP Hover Context | ADR-008 | SPIKE-003 | - | planned |
-| REQ-002 | Commit-Session Linking | ADR-001, ADR-005, ADR-006 | SPIKE-001, SPIKE-002 | - | planned |
-| REQ-003 | Code Block Extraction | ADR-006 | SPIKE-001 | - | planned |
-| REQ-004 | Workspace-Repo Mapping | ADR-006 | SPIKE-001 | - | planned |
+| REQ-002 | Commit-Session Linking | ADR-001, ADR-005, ADR-006 | SPIKE-001, SPIKE-002 | step0/step1/step2 | ✅ implemented |
+| REQ-003 | Code Block Extraction | ADR-006 | SPIKE-001 | parser tests | ✅ implemented |
+| REQ-004 | Workspace-Repo Mapping | ADR-006 | SPIKE-001 | db tests | ✅ implemented |
 
 ### Differentiating Features (P0)
 
@@ -42,16 +42,16 @@
 
 | ID | Requirement | ADRs | Spikes | Tests | Status |
 |----|-------------|------|--------|-------|--------|
-| REQ-005 | CLI Query Interface | ADR-008 | - | - | planned |
+| REQ-005 | CLI Query Interface | ADR-008 | - | - | ✅ partial (`prv query` done) |
 | REQ-006 | Session Context Display | ADR-009 | - | - | planned |
-| REQ-007 | Git Hook Linking | ADR-004 | - | - | planned |
+| REQ-007 | Git Hook Linking | ADR-004 | - | - | ✅ implemented (`prv link`) |
 | REQ-012 | Enhanced Summary Generation | ADR-009 | SPIKE-004 | - | planned |
 
 ### Advanced Features (P2)
 
 | ID | Requirement | ADRs | Spikes | Tests | Status |
 |----|-------------|------|--------|-------|--------|
-| REQ-008 | Index for Fast Lookup | ADR-005 | - | - | planned |
+| REQ-008 | Index for Fast Lookup | ADR-005 | - | - | ✅ basic (`index.json`) |
 | REQ-009 | Shareable Context (prv-memory) | ADR-002, ADR-004 | - | - | planned |
 | REQ-013 | Evolution Graph | ADR-009 | - | - | planned |
 
@@ -90,8 +90,8 @@
 
 | Pattern | Symptom | Status |
 |---------|---------|--------|
-| SPIKE-001 | CASS schema validation | **Complete** |
-| SPIKE-002 | Fingerprinting validation | Pending |
+| SPIKE-001 | CASS schema validation | ✅ Complete |
+| SPIKE-002 | Fingerprinting validation | ✅ Complete (step-ladder approach validated) |
 | SPIKE-003 | LSP performance validation | Pending |
 | SPIKE-004 | LLM extraction validation | Pending |
 | SPIKE-005 | Heat map LSP validation | Pending |
@@ -131,9 +131,24 @@ See `PLAN/06_phases.md` for full phase details.
 
 | REQ | Beads | Coverage |
 |-----|-------|----------|
-| REQ-003 | PRV-u0f.2, .3, .4, .5, .6, .9 | Full (AC-003.1-AC-003.6) |
-| REQ-004 | PRV-u0f.5, .6, .7, .9 | Full (AC-004.1-AC-004.5) |
-| REQ-005 | PRV-u0f.8 | Partial (scaffold only) |
+| REQ-003 | PRV-u0f.2, .3, .4, .5, .6, .9 | ✅ Full (AC-003.1-AC-003.6) |
+| REQ-004 | PRV-u0f.5, .6, .7, .9 | ✅ Full (AC-004.1-AC-004.5) |
+| REQ-005 | PRV-u0f.8, PRV-9bw.8, PRV-9bw.9 | ✅ Partial (`prv link`, `prv query`) |
+
+### Phase 1: PRV-9bw (Core Linking) ✅
+
+| Bead | Title | Requirements | Status |
+|------|-------|--------------|--------|
+| PRV-9bw.1 | Gates module | REQ-002 | ✅ Closed |
+| PRV-9bw.2 | Step 0 matching | REQ-002 | ✅ Closed |
+| PRV-9bw.3 | Step 1 matching | REQ-002 | ✅ Closed |
+| PRV-9bw.4 | Step 2 matching | REQ-002 | ✅ Closed |
+| PRV-9bw.5 | Storage layout | REQ-008 | ✅ Closed |
+| PRV-9bw.6 | Link JSON schema | REQ-007 | ✅ Closed |
+| PRV-9bw.7 | Index design | REQ-008 | ✅ Closed |
+| PRV-9bw.8 | prv link command | REQ-007 | ✅ Closed |
+| PRV-9bw.9 | prv query command | REQ-005 | ✅ Closed |
+| PRV-9bw.10 | Corpus validation | REQ-002 | ✅ Closed |
 
 ### v1.1
 - REQ-013: Evolution Graph
