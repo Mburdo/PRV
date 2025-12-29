@@ -3,12 +3,12 @@
 //! This crate provides read-only access to the CASS SQLite database
 //! for session data used in commit-to-session linking.
 
-pub mod models;
 pub mod db;
+pub mod models;
 pub mod workspace;
 
-pub use models::{Workspace, Conversation, Message};
 pub use db::CassDb;
+pub use models::{Conversation, Message, Workspace};
 pub use workspace::find_workspace_for_repo;
 
 pub fn version() -> &'static str {

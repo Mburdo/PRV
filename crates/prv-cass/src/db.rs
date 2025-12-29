@@ -2,9 +2,9 @@
 //!
 //! Provides read-only access to the CASS SQLite database.
 
+use crate::models::Workspace;
 use anyhow::{Context, Result};
 use rusqlite::Connection;
-use crate::models::Workspace;
 
 /// CASS database connection wrapper.
 pub struct CassDb {
@@ -22,8 +22,7 @@ impl CassDb {
 
     /// Get the default CASS database path.
     fn default_path() -> Result<std::path::PathBuf> {
-        let support = dirs::data_dir()
-            .context("Could not find Application Support directory")?;
+        let support = dirs::data_dir().context("Could not find Application Support directory")?;
         Ok(support
             .join("com.coding-agent-search.coding-agent-search")
             .join("agent_search.db"))
@@ -31,9 +30,9 @@ impl CassDb {
 
     /// Count the number of conversations in the database.
     pub fn session_count(&self) -> Result<i64> {
-        let count: i64 = self.conn.query_row(
-            "SELECT COUNT(*) FROM conversations", [], |row| row.get(0)
-        )?;
+        let count: i64 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM conversations", [], |row| row.get(0))?;
         Ok(count)
     }
 
@@ -41,7 +40,10 @@ impl CassDb {
     pub fn workspaces(&self) -> Result<Vec<Workspace>> {
         let mut stmt = self.conn.prepare("SELECT id, path FROM workspaces")?;
         let rows = stmt.query_map([], |row| {
-            Ok(Workspace { id: row.get(0)?, path: row.get(1)? })
+            Ok(Workspace {
+                id: row.get(0)?,
+                path: row.get(1)?,
+            })
         })?;
         rows.collect::<Result<Vec<_>, _>>().map_err(Into::into)
     }
@@ -53,7 +55,7 @@ impl CassDb {
              FROM messages
              WHERE role = 'assistant' AND length(content) > 100
              ORDER BY created_at DESC
-             LIMIT 1"
+             LIMIT 1",
         )?;
 
         let mut rows = stmt.query([])?;
@@ -89,7 +91,9 @@ mod tests {
         // Either succeeds or fails with context
         match result {
             Ok(_) => (), // CASS installed
-            Err(e) => assert!(e.to_string().contains("CASS") || e.to_string().contains("agent_search")),
+            Err(e) => {
+                assert!(e.to_string().contains("CASS") || e.to_string().contains("agent_search"))
+            }
         }
     }
 

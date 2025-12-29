@@ -64,9 +64,13 @@ fn debug_cass() -> Result<()> {
             // Sample code block extraction from recent message
             if let Ok(Some(msg)) = db.recent_message() {
                 let blocks = extract_code_blocks(&msg.content);
-                println!("\nSample extraction ({} blocks from recent message):", blocks.len());
+                println!(
+                    "\nSample extraction ({} blocks from recent message):",
+                    blocks.len()
+                );
                 if let Some(block) = blocks.first() {
-                    let preview: String = block.content.lines().take(3).collect::<Vec<_>>().join("\n");
+                    let preview: String =
+                        block.content.lines().take(3).collect::<Vec<_>>().join("\n");
                     println!("  Language: {:?}", block.language);
                     println!("  Preview:\n    {}", preview.replace('\n', "\n    "));
                 }

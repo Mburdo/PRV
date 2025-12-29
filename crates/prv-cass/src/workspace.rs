@@ -2,9 +2,9 @@
 //!
 //! Maps git repositories to CASS workspaces using path matching.
 
-use std::path::Path;
-use anyhow::Result;
 use crate::{CassDb, Workspace};
+use anyhow::Result;
+use std::path::Path;
 
 /// Find CASS workspace matching a git repo path.
 ///
@@ -21,8 +21,7 @@ pub fn find_workspace_for_repo(db: &CassDb, repo_path: &Path) -> Result<Option<W
         if let Ok(ws_canonical) = ws_path.canonicalize() {
             // Case-insensitive on macOS
             #[cfg(target_os = "macos")]
-            let matches = ws_canonical.to_string_lossy().to_lowercase()
-                == repo_str.to_lowercase();
+            let matches = ws_canonical.to_string_lossy().to_lowercase() == repo_str.to_lowercase();
 
             #[cfg(not(target_os = "macos"))]
             let matches = ws_canonical == canonical;
