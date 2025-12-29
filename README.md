@@ -21,6 +21,45 @@ It traces any line of code back to its origin — the AI session that created it
 
 ## How It Works
 
+```mermaid
+flowchart TB
+    subgraph AI["🤖 AI-Assisted Development"]
+        CC[Claude Code]
+        CU[Cursor]
+        CO[Codex]
+        OTHER[Other Tools]
+    end
+
+    subgraph CASS["📚 CASS - Invisible Capture"]
+        DISCOVER[Auto-Discovery] --> NORM[Normalization] --> SQLITE[(SQLite)]
+    end
+
+    subgraph PRV["🔍 PRV - The Memory Layer"]
+        subgraph MATCH["Step-Ladder Matching"]
+            GATES["⏱️ Time Gates"] --> STEP0["Step 0: Single?"]
+            STEP0 --> STEP1["Step 1: File Overlap"]
+            STEP1 --> STEP2["Step 2: Line Hash"]
+        end
+        STORE[".prv/links/"]
+        MATCH --> STORE
+    end
+
+    subgraph GIT["📦 Git"]
+        COMMIT["git commit"] --> HISTORY[("History")]
+    end
+
+    subgraph SURFACE["✨ Context Everywhere"]
+        CLI["CLI: prv query"]
+        LSP["Editor: Hover"]
+        HEAT["Visual: Heat Map"]
+    end
+
+    AI --> CASS
+    CASS --> PRV
+    GIT --> PRV
+    PRV --> SURFACE
+```
+
 PRV reads session data from [CASS](https://github.com/Dicklesworthstone/coding_agent_session_search) (Coding Agent Session Search), which automatically captures sessions from Claude Code, Cursor, Codex, and other AI tools. PRV then:
 
 1. **Links commits to sessions** using a 3-step matching pipeline

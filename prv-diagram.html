@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PRV Architecture</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body { background: #0d1117; padding: 40px; font-family: system-ui; }
+        .mermaid { background: #161b22; padding: 20px; border-radius: 12px; }
+        h1 { color: #e6edf3; text-align: center; }
+        p { color: #7d8590; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>🧠 PRV: The Memory Layer for AI-Assisted Development</h1>
+    <p>Git tells you WHAT changed. PRV tells you WHY.</p>
+
+    <div class="mermaid">
+flowchart TB
+    subgraph AI["🤖 AI-Assisted Development"]
+        CC[Claude Code]
+        CU[Cursor]
+        CO[Codex]
+        OTHER[Other Tools]
+    end
+
+    subgraph CASS["📚 CASS - Invisible Capture"]
+        direction TB
+        DISCOVER[Auto-Discovery]
+        NORM[Normalization]
+        SQLITE[(SQLite)]
+        DISCOVER --> NORM --> SQLITE
+    end
+
+    subgraph PRV["🔍 PRV - The Memory Layer"]
+        direction TB
+
+        subgraph MATCH["Step-Ladder Matching"]
+            direction LR
+            GATES["⏱️ Time\nGates"]
+            STEP0["Step 0\nSingle?"]
+            STEP1["Step 1\nFile Overlap"]
+            STEP2["Step 2\nLine Hash"]
+            GATES --> STEP0 --> STEP1 --> STEP2
+        end
+
+        subgraph STORE["Git-Native Storage"]
+            LINKS[".prv/links/"]
+            INDEX[".prv/index.json"]
+        end
+
+        MATCH --> STORE
+    end
+
+    subgraph GIT["📦 Git Repository"]
+        COMMIT["git commit"]
+        HISTORY[("History")]
+        COMMIT --> HISTORY
+    end
+
+    subgraph SURFACE["✨ Context Everywhere"]
+        CLI["CLI: prv query"]
+        LSP["Editor: Hover"]
+        HEAT["Visual: Heat Map"]
+    end
+
+    CC & CU & CO & OTHER --> CASS
+    CASS --> PRV
+    GIT --> PRV
+    PRV --> SURFACE
+
+    style AI fill:#238636,stroke:#2ea043,color:#fff
+    style CASS fill:#1f6feb,stroke:#388bfd,color:#fff
+    style PRV fill:#8957e5,stroke:#a371f7,color:#fff
+    style GIT fill:#f78166,stroke:#ff7b72,color:#fff
+    style SURFACE fill:#d29922,stroke:#e3b341,color:#fff
+    </div>
+
+    <script>mermaid.initialize({theme: 'dark'});</script>
+</body>
+</html>
