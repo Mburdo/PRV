@@ -6,5 +6,7 @@
 //! - Step 2: Line hash matching for precision
 
 pub mod gates;
+pub mod step0;
 
 pub use gates::{candidate_sessions, Conversation, ConversationStore, Workspace};
+pub use step0::{match_step0, MatchResult};
