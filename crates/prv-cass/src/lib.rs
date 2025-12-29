@@ -8,7 +8,7 @@ pub mod models;
 pub mod workspace;
 
 pub use db::CassDb;
-pub use models::{Conversation, Message, Workspace};
+pub use models::{Conversation, Message, Snippet, Workspace};
 pub use workspace::find_workspace_for_repo;
 
 pub fn version() -> &'static str {

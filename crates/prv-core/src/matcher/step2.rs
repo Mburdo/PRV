@@ -28,9 +28,9 @@ impl CodeBlockLines for ConversationWithCode {
     }
 }
 
-/// Normalize a line for hashing: trim and collapse whitespace
+/// Normalize a line for hashing: collapse whitespace
 fn hash_normalized(line: &str) -> u64 {
-    let normalized: String = line.trim().split_whitespace().collect::<Vec<_>>().join(" ");
+    let normalized: String = line.split_whitespace().collect::<Vec<_>>().join(" ");
     hash64(&normalized)
 }
 
@@ -63,7 +63,7 @@ pub fn match_step2(
 
         if overlap_ratio > 0.5 {
             let confidence = 0.8 + (overlap_ratio * 0.2);
-            if best.as_ref().map_or(true, |(_, c)| confidence > *c) {
+            if best.as_ref().is_none_or(|(_, c)| confidence > *c) {
                 best = Some((candidate.conversation.clone(), confidence));
             }
         }

@@ -14,6 +14,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Link a commit to its originating AI session
+    Link {
+        /// Commit SHA, branch name, or HEAD
+        #[arg(long, default_value = "HEAD")]
+        commit: String,
+    },
+
     /// Query linked session for a commit
     Query {
         /// Commit SHA, branch name, or HEAD
@@ -42,6 +49,9 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
+        Some(Commands::Link { commit }) => {
+            link_commit(&commit)?;
+        }
         Some(Commands::Query { commit, json }) => {
             query_commit(&commit, json)?;
         }
@@ -57,6 +67,229 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn link_commit(commit_ref: &str) -> Result<()> {
+    use prv_cass::{find_workspace_for_repo, CassDb};
+    use prv_core::matcher::{
+        candidate_sessions, match_step0, match_step1_simple, match_step2, Conversation,
+        ConversationStore, ConversationWithCode, ConversationWithFiles, Workspace,
+    };
+    use prv_core::{Link, LinkIndex, LinkStorage};
+
+    // Open the git repository
+    let repo = git2::Repository::open_from_env()
+        .map_err(|e| anyhow::anyhow!("Not in a git repository: {}", e))?;
+
+    let workdir = repo
+        .workdir()
+        .ok_or_else(|| anyhow::anyhow!("Repository has no working directory (bare repo?)"))?;
+
+    // Resolve the commit reference to a full SHA
+    let commit_sha = resolve_commit(&repo, commit_ref)?;
+    let short_sha = &commit_sha[..7.min(commit_sha.len())];
+
+    // Check if already linked
+    let storage = LinkStorage::new(workdir);
+    if storage.exists(&commit_sha) {
+        println!("Commit {} is already linked.", short_sha);
+        println!("Run `prv query {}` to see the link.", short_sha);
+        return Ok(());
+    }
+
+    // Open CASS database
+    let db = CassDb::open()
+        .map_err(|e| anyhow::anyhow!("CASS not available: {}. Is CASS installed?", e))?;
+
+    // Get commit info
+    let commit = repo
+        .find_commit(git2::Oid::from_str(&commit_sha)?)
+        .map_err(|e| anyhow::anyhow!("Cannot find commit: {}", e))?;
+    let commit_time_ms = commit.time().seconds() * 1000;
+
+    // Create a store wrapper for the matcher
+    struct CassStore<'a> {
+        db: &'a CassDb,
+    }
+
+    impl ConversationStore for CassStore<'_> {
+        fn find_workspace_for_path(
+            &self,
+            repo_path: &std::path::Path,
+        ) -> Result<Option<Workspace>> {
+            match find_workspace_for_repo(self.db, repo_path)? {
+                Some(ws) => Ok(Some(Workspace {
+                    id: ws.id,
+                    path: ws.path,
+                })),
+                None => Ok(None),
+            }
+        }
+
+        fn conversations_for_workspace(&self, workspace_id: i64) -> Result<Vec<Conversation>> {
+            let cass_convs = self.db.conversations_for_workspace(workspace_id)?;
+
+            // Convert prv_cass::Conversation to prv_core::matcher::Conversation
+            // Filter out conversations without workspace_id or started_at
+            Ok(cass_convs
+                .into_iter()
+                .filter_map(|c| {
+                    let ws_id = c.workspace_id?;
+                    let started = c.started_at?;
+                    Some(Conversation {
+                        id: c.id,
+                        workspace_id: ws_id,
+                        started_at: started,
+                        ended_at: c.ended_at,
+                    })
+                })
+                .collect())
+        }
+    }
+
+    let store = CassStore { db: &db };
+
+    // Get candidate sessions within time window
+    let candidates = candidate_sessions(&store, workdir, commit_time_ms)?;
+
+    if candidates.is_empty() {
+        println!("No matching session found for {}.", short_sha);
+        println!("Possible reasons:");
+        println!("  - No CASS workspace matches this repository");
+        println!("  - No sessions within 7-day window of commit time");
+        return Ok(());
+    }
+
+    // Get commit files for step1 matching
+    let commit_files = get_commit_files(&repo, &commit)?;
+
+    // Get diff lines for step2 matching
+    let diff_lines = get_commit_diff_lines(&repo, &commit).unwrap_or_default();
+
+    // Run matching pipeline: Step 0 → Step 1 → Step 2
+    let result = match_step0(&candidates)
+        .or_else(|| {
+            // Step 1: file path hints
+            if commit_files.is_empty() {
+                return None;
+            }
+
+            // Get file mentions from CASS snippets for each candidate
+            let candidates_with_files: Vec<ConversationWithFiles> = candidates
+                .iter()
+                .filter_map(|c| {
+                    let snippets = db.snippets_for_conversation(c.id).ok()?;
+                    let mentioned_files: Vec<String> = snippets
+                        .iter()
+                        .filter_map(|s| s.file_path.clone())
+                        .collect();
+                    Some(ConversationWithFiles {
+                        conversation: c.clone(),
+                        mentioned_files,
+                    })
+                })
+                .collect();
+
+            match_step1_simple(&candidates_with_files, &commit_files)
+        })
+        .or_else(|| {
+            // Step 2: line hash matching
+            if diff_lines.is_empty() {
+                return None;
+            }
+
+            // Get code lines from CASS snippets for each candidate
+            let candidates_with_code: Vec<ConversationWithCode> = candidates
+                .iter()
+                .filter_map(|c| {
+                    let snippets = db.snippets_for_conversation(c.id).ok()?;
+                    let code_lines: Vec<String> = snippets
+                        .iter()
+                        .filter_map(|s| s.snippet_text.as_ref())
+                        .flat_map(|text| text.lines().map(String::from))
+                        .collect();
+                    Some(ConversationWithCode {
+                        conversation: c.clone(),
+                        code_lines,
+                    })
+                })
+                .collect();
+
+            match_step2(&candidates_with_code, &diff_lines)
+        });
+
+    match result {
+        Some(m) => {
+            let link = Link::new(&commit_sha, m.conversation.id, m.confidence, m.step);
+            storage.save(&link)?;
+
+            // Update index
+            let mut index = LinkIndex::load(workdir)?;
+            index.insert(&link);
+            index.save(workdir)?;
+
+            println!(
+                "Linked {} → session {} ({:.0}% confidence, step {})",
+                short_sha,
+                m.conversation.id,
+                m.confidence * 100.0,
+                m.step
+            );
+        }
+        None => {
+            println!("No matching session found for {}.", short_sha);
+            println!(
+                "Found {} candidate(s) but no confident match.",
+                candidates.len()
+            );
+        }
+    }
+
+    Ok(())
+}
+
+/// Get list of files changed in a commit
+fn get_commit_files(repo: &git2::Repository, commit: &git2::Commit) -> Result<Vec<String>> {
+    let tree = commit.tree()?;
+    let parent_tree = commit.parent(0).ok().and_then(|p| p.tree().ok());
+
+    let diff = repo.diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), None)?;
+
+    let mut files = Vec::new();
+    diff.foreach(
+        &mut |delta, _| {
+            if let Some(path) = delta.new_file().path() {
+                if let Some(s) = path.to_str() {
+                    files.push(s.to_string());
+                }
+            }
+            true
+        },
+        None,
+        None,
+        None,
+    )?;
+
+    Ok(files)
+}
+
+fn get_commit_diff_lines(repo: &git2::Repository, commit: &git2::Commit) -> Result<Vec<String>> {
+    let tree = commit.tree()?;
+    let parent_tree = commit.parent(0).ok().and_then(|p| p.tree().ok());
+
+    let diff = repo.diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), None)?;
+
+    let mut lines = Vec::new();
+    diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| {
+        if line.origin() == '+' || line.origin() == '-' {
+            if let Ok(content) = std::str::from_utf8(line.content()) {
+                lines.push(content.trim_end().to_string());
+            }
+        }
+        true
+    })?;
+
+    Ok(lines)
 }
 
 fn query_commit(commit_ref: &str, json_output: bool) -> Result<()> {
@@ -199,6 +432,28 @@ mod tests {
                 assert!(json);
             }
             _ => panic!("Expected Query command"),
+        }
+    }
+
+    #[test]
+    fn test_link_parses_with_defaults() {
+        let cli = Cli::parse_from(["prv", "link"]);
+        match cli.command {
+            Some(Commands::Link { commit }) => {
+                assert_eq!(commit, "HEAD");
+            }
+            _ => panic!("Expected Link command"),
+        }
+    }
+
+    #[test]
+    fn test_link_parses_with_commit() {
+        let cli = Cli::parse_from(["prv", "link", "--commit", "abc123"]);
+        match cli.command {
+            Some(Commands::Link { commit }) => {
+                assert_eq!(commit, "abc123");
+            }
+            _ => panic!("Expected Link command"),
         }
     }
 
