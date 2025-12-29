@@ -75,7 +75,7 @@ fn link_commit(commit_ref: &str) -> Result<()> {
         candidate_sessions, match_step0, match_step1_simple, match_step2, Conversation,
         ConversationStore, ConversationWithCode, ConversationWithFiles, Workspace,
     };
-    use prv_core::{Link, LinkIndex, LinkStorage};
+    use prv_core::{extract_code_blocks, Link, LinkIndex, LinkStorage};
 
     // Open the git repository
     let repo = git2::Repository::open_from_env()
@@ -169,19 +169,19 @@ fn link_commit(commit_ref: &str) -> Result<()> {
     // Run matching pipeline: Step 0 → Step 1 → Step 2
     let result = match_step0(&candidates)
         .or_else(|| {
-            // Step 1: file path hints
+            // Step 1: file path hints from message content
             if commit_files.is_empty() {
                 return None;
             }
 
-            // Get file mentions from CASS snippets for each candidate
+            // Extract file paths mentioned in messages for each candidate
             let candidates_with_files: Vec<ConversationWithFiles> = candidates
                 .iter()
                 .filter_map(|c| {
-                    let snippets = db.snippets_for_conversation(c.id).ok()?;
-                    let mentioned_files: Vec<String> = snippets
+                    let messages = db.messages_for_conversation(c.id).ok()?;
+                    let mentioned_files: Vec<String> = messages
                         .iter()
-                        .filter_map(|s| s.file_path.clone())
+                        .flat_map(|m| extract_file_paths(&m.content))
                         .collect();
                     Some(ConversationWithFiles {
                         conversation: c.clone(),
@@ -193,20 +193,26 @@ fn link_commit(commit_ref: &str) -> Result<()> {
             match_step1_simple(&candidates_with_files, &commit_files)
         })
         .or_else(|| {
-            // Step 2: line hash matching
+            // Step 2: line hash matching from code blocks in messages
             if diff_lines.is_empty() {
                 return None;
             }
 
-            // Get code lines from CASS snippets for each candidate
+            // Extract code blocks from messages for each candidate
             let candidates_with_code: Vec<ConversationWithCode> = candidates
                 .iter()
                 .filter_map(|c| {
-                    let snippets = db.snippets_for_conversation(c.id).ok()?;
-                    let code_lines: Vec<String> = snippets
+                    let messages = db.messages_for_conversation(c.id).ok()?;
+                    let code_lines: Vec<String> = messages
                         .iter()
-                        .filter_map(|s| s.snippet_text.as_ref())
-                        .flat_map(|text| text.lines().map(String::from))
+                        .filter(|m| m.role == "assistant") // Only assistant messages have code
+                        .flat_map(|m| {
+                            extract_code_blocks(&m.content)
+                                .into_iter()
+                                .flat_map(|block| {
+                                    block.content.lines().map(String::from).collect::<Vec<_>>()
+                                })
+                        })
                         .collect();
                     Some(ConversationWithCode {
                         conversation: c.clone(),
@@ -246,6 +252,38 @@ fn link_commit(commit_ref: &str) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Extract file paths mentioned in text (e.g., "src/main.rs", "crates/prv/Cargo.toml")
+fn extract_file_paths(text: &str) -> Vec<String> {
+    use regex::Regex;
+    use std::collections::HashSet;
+
+    // Match common file path patterns
+    let re = Regex::new(r#"(?:^|[\s`"'(])([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+)(?:[\s`"'):]|$)"#)
+        .expect("Invalid regex");
+
+    let mut paths: HashSet<String> = HashSet::new();
+
+    for cap in re.captures_iter(text) {
+        if let Some(m) = cap.get(1) {
+            let path = m.as_str();
+            // Filter for likely file paths
+            if path.contains('/')
+                || path.ends_with(".rs")
+                || path.ends_with(".toml")
+                || path.ends_with(".json")
+                || path.ends_with(".md")
+                || path.ends_with(".ts")
+                || path.ends_with(".js")
+                || path.ends_with(".py")
+            {
+                paths.insert(path.to_string());
+            }
+        }
+    }
+
+    paths.into_iter().collect()
 }
 
 /// Get list of files changed in a commit
